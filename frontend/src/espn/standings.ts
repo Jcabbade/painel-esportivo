@@ -65,15 +65,18 @@ function parseRows(sport: Sport, entries: any[]): StandingRow[] {
 
 export function parseStandingsTable(sport: Sport, payload: unknown): StandingGroup[] {
   const groups: StandingGroup[] = []
-  const walk = (node: any) => {
+  const walk = (node: any, depth: number) => {
     const entries = node?.standings?.entries
     if (Array.isArray(entries) && entries.length) {
-      groups.push({ name: node.name ?? '', rows: parseRows(sport, entries) })
+      let rows = parseRows(sport, entries)
+      // Divisão: a ESPN manda só o seed da conferência; a posição na divisão segue esse seed.
+      if (depth > 0) rows = rows.map((r, i) => ({ ...r, rank: i + 1 }))
+      groups.push({ name: node.name ?? '', rows })
       return
     }
-    for (const child of node?.children ?? []) walk(child)
+    for (const child of node?.children ?? []) walk(child, depth + 1)
   }
-  for (const child of (payload as any)?.children ?? []) walk(child)
+  for (const child of (payload as any)?.children ?? []) walk(child, 0)
   return groups
 }
 

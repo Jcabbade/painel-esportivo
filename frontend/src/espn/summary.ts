@@ -51,6 +51,16 @@ const EVENT_KINDS: Record<string, SoccerEventKind> = {
   'halftime': 'halftime',
 }
 
+/** Tipo do lance; a ESPN às vezes detalha o gol (ex.: 'goal---header', 'goal---volley'). */
+function kindOf(type: unknown): SoccerEventKind | null {
+  if (typeof type !== 'string') return null
+  if (EVENT_KINDS[type]) return EVENT_KINDS[type]
+  if (type.startsWith('own-goal')) return 'own_goal'
+  if (type.startsWith('penalty---scored')) return 'penalty_goal'
+  if (type.startsWith('goal')) return 'goal'
+  return null
+}
+
 type SideKey = 'home' | 'away'
 
 function sideOf(game: Game, teamId: unknown): SideKey | null {
@@ -87,7 +97,7 @@ function parseEvents(game: Game, payload: any): SoccerEvent[] {
   const out: SoccerEvent[] = []
   for (const ev of payload?.keyEvents ?? []) {
     try {
-      const kind = EVENT_KINDS[ev?.type?.type]
+      const kind = kindOf(ev?.type?.type)
       if (!kind) continue
       const names: string[] = (ev.participants ?? []).map((p: any) => p?.athlete?.displayName).filter(Boolean)
       out.push({

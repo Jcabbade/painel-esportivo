@@ -83,6 +83,14 @@ describe('parseSummary — futebol', () => {
     expect(d.box).toBeNull()
   })
 
+  it('soccer goal subtypes count as goals', () => {
+    const ucl = fixture('sum_UCL_401862582.json')
+    const d = parseSummary(gameOf(ucl, 'UCL', 'soccer', 'final'), ucl)
+    const goals = d.events.filter(e => e.kind === 'goal' || e.kind === 'penalty_goal' || e.kind === 'own_goal')
+    expect(goals).toHaveLength(9) // placar 7–2 do jogo
+    expect(goals.find(e => e.minute === "56'")).toMatchObject({ kind: 'goal' })
+  })
+
   it('ucl second leg aggregate', () => {
     const ucl = fixture('sum_UCL_401862582.json')
     const d = parseSummary(gameOf(ucl, 'UCL', 'soccer', 'final'), ucl)

@@ -41,6 +41,15 @@ describe('standings', () => {
     for (const g of groups) expect(g.rows).toHaveLength(4)
   })
 
+  it('division rank is position within the division', () => {
+    for (const [sport, file] of [['basketball', 'standings_NBA_div.json'], ['football', 'standings_NFL_div.json']] as const) {
+      for (const g of parseStandingsTable(sport, fixture(file))) {
+        expect(g.rows.map(r => r.rank)).toEqual(g.rows.map((_, i) => i + 1))
+        expect(g.rows.map(r => Number(r.cells.playoffSeed))).toEqual([...g.rows.map(r => Number(r.cells.playoffSeed))].sort((a, b) => a - b))
+      }
+    }
+  })
+
   it('loadStandings caches 10 min', async () => {
     let calls = 0
     const f = async () => { calls++; return fixture('standings_PL.json') }
