@@ -150,3 +150,16 @@ O usuário quer abrir o painel no celular sem depender do notebook ligado. O pai
 - Time de cada notícia: na ESPN pela marcação dela; nas demais, pelo nome do time no título/resumo (com apelidos em português; nomes curtos ambíguos como "United" não contam sozinhos).
 - Fonte que falhar mantém os itens da execução anterior e aparece como "fora do ar" no filtro; notícias com mais de 7 dias saem.
 - Telas: bloco "Notícias dos seus times" na aba Favoritos (e no painel da direita vazio, no computador); seção "Notícias" no detalhe do jogo (itens que citam um dos dois times); aba "Notícias" com o fluxo completo e filtro por fonte.
+
+## 11. Revisão (2026-11-19): análise do jogo em abas (Plano 4), aprovada pelo usuário
+
+**Pedido:** abas de análise no detalhe do jogo inspiradas no GreenScorer (prints em 19/11): Pré-jogo (comparativo + "oportunidades" x/10), H2H completo, Escalação em campo, Jogadores (médias por jogador) e Escanteios por faixa de 10 min. "Quero todas."
+
+**Fatos da fonte (conferidos):** `rosters[].formation` + `position.abbreviation` por titular (futebol); `rosters[].roster[].stats` por jogador e jogo (futebol: foulsCommitted, foulsSuffered, totalShots, shotsOnTarget, yellowCards, redCards, saves, totalGoals, goalAssists); `boxscore.players` (NBA/NFL); `commentary[].play.type.type = 'corner-awarded'` com `period.number`, `clock.value` (s) e `team.displayName` (só nome). Sem árbitro, notas de jogador, xG nem fotos de jogadores de futebol.
+
+**Como:**
+- Abas no detalhe: **Jogo** (atual) · **Pré-jogo** · **H2H** · **Escalação** (só futebol) · **Jogadores** · **Escanteios** (só futebol).
+- O histórico (ramo `data`) ganha, por jogo: distribuição de escanteios por faixa (0–10, 10–20, 20–30, 30–40, 40–intervalo, 45–55, 55–65, 65–75, 75–85, 85–fim), gravada **só quando a contagem da narração bate com o total oficial** do time; e um arquivo `players-<LIGA>.json` com os números de cada jogador por jogo (só quem entrou em campo). Versão nova do histórico → carga refeita uma vez.
+- Pré-jogo, H2H e forma usam o histórico de todas as ligas do esporte (como o ranking "Todas"); Jogadores usa o arquivo da liga do jogo.
+- "Oportunidades" = estatísticas em que o time mais bateu a linha (mais de/menos de) nos últimos 10 jogos, com acertos x/10 e média; sem odds.
+- Nada estimado: estatística ausente sai da amostra; sempre mostrar nº de jogos.
