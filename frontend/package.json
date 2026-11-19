@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "update-news": "vite-node scripts/update-news.ts"
   },
   "dependencies": {
     "react": "^19.1.0",
