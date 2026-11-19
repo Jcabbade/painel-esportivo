@@ -85,7 +85,7 @@ export function TeamsRanking() {
         </div>
       </div>
       <div className="list">
-        <DataStatus meta={h.meta} games={h.files.reduce((s, f) => s + f.games.length, 0)} loading={h.loading}
+        <DataStatus files={h.files} meta={h.meta} games={h.files.reduce((s, f) => s + f.games.length, 0)} gamesLabel="jogos no histórico (a coluna J mostra os de cada time)" loading={h.loading}
           errors={h.errors} missing={h.missing} onRetry={h.retry} />
         {!h.loading && !h.missing && (rows.length === 0
           ? <p className="empty">Sem jogos para esses filtros.</p>

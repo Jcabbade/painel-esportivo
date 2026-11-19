@@ -20,6 +20,8 @@ export interface UpdateOpts {
   now?: Date
   log?: (msg: string) => void
   sleep?: (ms: number) => Promise<void>
+  /** Horário-limite (ms desde 1970): ao passar, para como no limite de buscas e devolve done: false. */
+  deadline?: number
 }
 
 const realSleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
@@ -58,13 +60,15 @@ export async function updateLeague(file: LeagueFile | null, leagueKey: string, o
   let scanned = file?.scanned_until ?? null
   let blocked = false   // um dia ficou incompleto: scanned_until não passa dele
 
+  const late = () => opts.deadline !== undefined && Date.now() >= opts.deadline
   for (; day <= last && !capped; day = addDays(day, 1)) {
+    if (late()) { capped = true; break }
     const sb = await get(`${ESPN_SITE}/${lg.path}/scoreboard?dates=${compact(day)}`)
     let complete = true
     for (const g of parseScoreboard(lg, sb)) {
       if (g.status !== 'final' || games.has(g.id)) continue
       if (allowed && (!allowed.has(g.home.team_id) || !allowed.has(g.away.team_id))) continue
-      if (fetched >= max) { capped = true; complete = false; break }
+      if (fetched >= max || late()) { capped = true; complete = false; break }
       fetched++
       try {
         const r = toRecord(g, await get(`${ESPN_SITE}/${lg.path}/summary?event=${g.id}`))

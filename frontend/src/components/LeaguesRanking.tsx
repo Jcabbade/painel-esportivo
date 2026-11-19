@@ -56,7 +56,7 @@ export function LeaguesRanking() {
           options={[{ value: 'season', label: 'Temporada' }, { value: '30d', label: 'Últimos 30 dias' }]} />
       </div>
       <div className="list">
-        <DataStatus meta={h.meta} games={rows.reduce((s, r) => s + r.games, 0)} loading={h.loading}
+        <DataStatus files={h.files} meta={h.meta} games={rows.reduce((s, r) => s + r.games, 0)} gamesLabel="jogos considerados" loading={h.loading}
           errors={h.errors} missing={h.missing} onRetry={h.retry} />
         {!h.loading && !h.missing && (rows.length === 0
           ? <p className="empty">Sem jogos para esses filtros.</p>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { GameRecord, LeagueFile } from '../history/types'
-import { dataAge, leagueRanking, teamRanking } from './compute'
+import type { GameRecord, LeagueFile, Meta } from '../history/types'
+import { dataAge, dataStatus, leagueRanking, teamRanking } from './compute'
 import { defaultLine, METRICS, sideValue } from './metrics'
 
 let seq = 0
@@ -142,6 +142,16 @@ describe('teamRanking', () => {
     expect(teamRanking([esp], base).find(r => r.teamId === '86')).toMatchObject({ games: 1, avg: 2 })
   })
 
+  it('teams without games in the current season are not ranked', () => {
+    const f = file('PL', [
+      g({ h: '1', a: '2', hs: 5, as: 0, season: 2025, date: '2026-04-01T20:00:00Z' }),   // 2 foi rebaixado
+      g({ h: '1', a: '3', hs: 1, as: 0, season: 2026, date: '2026-09-01T20:00:00Z' }),
+    ])
+    const ids = teamRanking([f], { ...base, last: 5 }).map(r => r.teamId)
+    expect(ids).not.toContain('2')
+    expect(teamRanking([f], { ...base, last: 5 }).find(r => r.teamId === '1')).toMatchObject({ games: 2, avg: 3 })
+  })
+
   it('order and ties', () => {
     const f = file('PL', [
       g({ h: '1', a: '9', hs: 2, as: 0 }), g({ h: '1', a: '9', hs: 2, as: 0 }),
@@ -151,6 +161,37 @@ describe('teamRanking', () => {
     const desc = teamRanking([f], base).map(r => r.teamId)
     expect(desc.slice(0, 3)).toEqual(['1', '2', '3'])     // 1 e 2 empatam em 2,0; 1 tem mais jogos
     expect(teamRanking([f], { ...base, order: 'asc' })[0].teamId).toBe('9')
+  })
+})
+
+describe('dataStatus', () => {
+  const lf = (league: string, scanned: string | null): LeagueFile => ({ ...file(league, []), scanned_until: scanned })
+  const now = new Date('2026-11-20T15:00:00Z')   // 20/11 em Brasília
+
+  it('label uses the oldest scanned day of the shown leagues', () => {
+    const s = dataStatus([lf('PL', '2026-11-19'), lf('ESP', '2026-11-18')], null, now)
+    expect(s.label).toBe('Jogos até 18/11')
+    expect(s.stale).toBe(false)
+  })
+
+  it('stale when a league stopped advancing', () => {
+    const s = dataStatus([lf('PL', '2026-11-19'), lf('NBA', '2026-11-13')], null, now)
+    expect(s.stale).toBe(true)
+    expect(s.label).toBe('Jogos até 13/11')
+  })
+
+  it('reports league errors and pending loads from meta', () => {
+    const meta: Meta = { updated_at: '2026-11-20T12:00:00Z', leagues: {
+      PL: { games: 10, scanned_until: '2026-11-19', error: null, pending: true },
+      NBA: { games: 5, scanned_until: '2026-11-19', error: 'ESPN respondeu 500', pending: false },
+      NFL: { games: 5, scanned_until: '2026-11-19', error: 'outra liga', pending: false },
+    } }
+    const s = dataStatus([lf('PL', '2026-11-19'), lf('NBA', '2026-11-19')], meta, now)
+    expect(s.problems).toEqual(['Premier League: carga do histórico em andamento', 'NBA: última atualização falhou (ESPN respondeu 500)'])
+  })
+
+  it('no scanned day yet', () => {
+    expect(dataStatus([lf('PL', null)], null, now)).toMatchObject({ label: 'Histórico ainda sem jogos', stale: true })
   })
 })
 

@@ -1,6 +1,7 @@
 /* Rankings de ligas e times, calculados a partir das fichas. Funções puras. */
 import { league as leagueOf } from '../espn/leagues'
-import type { GameRecord, LeagueFile } from '../history/types'
+import type { GameRecord, LeagueFile, Meta } from '../history/types'
+import { addDays, localToday } from '../lib/dates'
 import type { Sport } from '../types'
 import { METRICS, scoreIn, sideValue, type Measure, type Metric, type PeriodId, type Side, type View } from './metrics'
 
@@ -100,12 +101,14 @@ interface Entry { g: GameRecord; side: Side; sport: Sport; current: boolean }
 export function teamRanking(files: LeagueFile[], o: TeamOpts): TeamRow[] {
   const m = metricById(o.metricId)
   const byTeam = new Map<string, Entry[]>()
+  const currentTeams = new Set<string>()
   const info = new Map<string, { name: string; logo: string | null }>()
   for (const f of files) {
     const sport = sportOf(f)
     if (!m.periods[sport]) continue
     const season = maxSeason(f)
     for (const g of f.games) {
+      if (g.season === season) { currentTeams.add(g.h); currentTeams.add(g.a) }
       for (const side of ['h', 'a'] as Side[]) {
         if (o.venue === 'home' && side !== 'h') continue
         if (o.venue === 'away' && side !== 'a') continue
@@ -120,6 +123,8 @@ export function teamRanking(files: LeagueFile[], o: TeamOpts): TeamRow[] {
 
   const rows: TeamRow[] = []
   for (const [teamId, all] of byTeam) {
+    // Só times com jogo na temporada atual (rebaixados/eliminados não aparecem com jogos antigos).
+    if (!currentTeams.has(teamId)) continue
     all.sort((a, b) => b.g.date.localeCompare(a.g.date))
     const form = all.slice(0, 5).map(e => outcome(e.g.hs, e.g.as, e.side))
     const picked = o.last === 'season' ? all.filter(e => e.current) : all.slice(0, o.last)
@@ -159,6 +164,26 @@ export function teamRanking(files: LeagueFile[], o: TeamOpts): TeamRow[] {
 function outcome(hs: number, as: number, side: Side): 'V' | 'E' | 'D' {
   const mine = side === 'h' ? hs : as, theirs = side === 'h' ? as : hs
   return mine > theirs ? 'V' : mine < theirs ? 'D' : 'E'
+}
+
+const dayFmt = (day: string) => `${day.slice(8, 10)}/${day.slice(5, 7)}`
+
+/** Até que dia os dados das ligas mostradas vão (a mais atrasada manda) e problemas por liga. */
+export function dataStatus(files: LeagueFile[], meta: Meta | null, now: Date):
+  { label: string; stale: boolean; problems: string[] } {
+  const days = files.map(f => f.scanned_until)
+  const problems: string[] = []
+  for (const f of files) {
+    const m = meta?.leagues?.[f.league]
+    const name = leagueOf(f.league).name
+    if (m?.pending) problems.push(`${name}: carga do histórico em andamento`)
+    if (m?.error) problems.push(`${name}: última atualização falhou (${m.error})`)
+  }
+  if (!days.length || days.some(d => !d)) return { label: 'Histórico ainda sem jogos', stale: true, problems }
+  const oldest = (days as string[]).sort()[0]
+  // O robô roda às 9h e varre até ontem: anteontem ainda é normal; antes disso, está atrasado.
+  const stale = oldest < addDays(localToday(now), -2)
+  return { label: `Jogos até ${dayFmt(oldest)}`, stale, problems }
 }
 
 const fmt = new Intl.DateTimeFormat('pt-BR', {

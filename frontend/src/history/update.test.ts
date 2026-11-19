@@ -124,6 +124,17 @@ describe('updateLeague', () => {
     expect(r.file.scanned_until).toBe('2026-11-03')
   })
 
+  it('stops at the deadline and resumes next run', async () => {
+    const games: FakeGame[] = [{ id: 'g1', day: '2026-11-01', home: '1', away: '2', state: 'post' }]
+    const { fetch } = fakeEspn(() => games)
+    const r = await updateLeague(null, 'PL', { ...base, fetch, deadline: 0 })
+    expect(r.done).toBe(false)
+    expect(r.file.games).toEqual([])
+    expect(r.file.scanned_until).toBeNull()
+    const r2 = await updateLeague(r.file, 'PL', { ...base, fetch })
+    expect(r2.file.games.map(g => g.id)).toEqual(['g1'])
+  })
+
   it('nba drops teams outside standings', async () => {
     const games: FakeGame[] = [
       { id: 'ok', day: '2026-11-01', home: '1', away: '2', state: 'post' },

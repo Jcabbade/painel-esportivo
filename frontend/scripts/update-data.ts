@@ -1,6 +1,6 @@
 /* Robô diário do histórico: atualiza games-<LIGA>.json e meta.json na pasta indicada.
    Uso: npm run update-data -- <pasta>   (UPDATE_START=AAAA-MM-DD e UPDATE_MAX=n são opcionais, para testes) */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { LEAGUES } from '../src/espn/leagues'
 import { localToday } from '../src/lib/dates'
@@ -26,7 +26,19 @@ async function get(url: string): Promise<unknown> {
   }
 }
 
-const readJson = <T>(path: string): T | null => (existsSync(path) ? JSON.parse(readFileSync(path, 'utf-8')) as T : null)
+function readJson<T>(path: string): T | null {
+  if (!existsSync(path)) return null
+  try { return JSON.parse(readFileSync(path, 'utf-8')) as T } catch (e) {
+    console.error(`${path} ilegível (${(e as Error).message}): recomeçando esta liga`)
+    return null
+  }
+}
+
+/** Grava num arquivo temporário e renomeia: uma interrupção nunca deixa JSON pela metade. */
+function writeJson(path: string, data: unknown) {
+  writeFileSync(`${path}.tmp`, JSON.stringify(data))
+  renameSync(`${path}.tmp`, path)
+}
 
 async function main() {
   const dir = process.argv[2]
@@ -36,25 +48,27 @@ async function main() {
   const today = localToday()
   const max = process.env.UPDATE_MAX ? Number(process.env.UPDATE_MAX) : undefined
   const start = process.env.UPDATE_START || undefined
+  // Tempo máximo de trabalho (o passo do GitHub tem 300 min): para antes, sempre gravando o que fez.
+  const deadline = Date.now() + Number(process.env.UPDATE_BUDGET_MIN ?? 240) * 60_000
   let failures = 0, pending = 0
 
   for (const l of LEAGUES) {
     const path = join(dir, `games-${l.key}.json`)
     const prev = readJson<LeagueFile>(path)
     try {
-      const { file, done } = await updateLeague(prev, l.key, { fetch: get, today, start, maxSummaries: max, log: console.log })
-      writeFileSync(path, JSON.stringify(file))
-      meta.leagues[l.key] = { games: file.games.length, scanned_until: file.scanned_until, error: null }
+      const { file, done } = await updateLeague(prev, l.key, { fetch: get, today, start, maxSummaries: max, log: console.log, deadline })
+      writeJson(path, file)
+      meta.leagues[l.key] = { games: file.games.length, scanned_until: file.scanned_until, error: null, pending: !done }
       if (!done) pending++
     } catch (e) {
       failures++
       const msg = (e as Error).message
       console.error(`${l.key}: ERRO ${msg}`)
-      meta.leagues[l.key] = { games: prev?.games.length ?? 0, scanned_until: prev?.scanned_until ?? null, error: msg }
+      meta.leagues[l.key] = { games: prev?.games.length ?? 0, scanned_until: prev?.scanned_until ?? null, error: msg, pending: meta.leagues[l.key]?.pending ?? true }
     }
   }
   meta.updated_at = new Date().toISOString()
-  writeFileSync(join(dir, 'meta.json'), JSON.stringify(meta))
+  writeJson(join(dir, 'meta.json'), meta)
   console.log(`concluído: ${LEAGUES.length - failures} ligas ok, ${failures} com erro, ${pending} com carga pendente`)
   if (pending) console.log('CARGA_PENDENTE')
   if (failures === LEAGUES.length) process.exit(1)

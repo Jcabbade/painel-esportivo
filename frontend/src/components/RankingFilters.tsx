@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { HistoryMissing, loadHistory, loadMeta } from '../history/loadHistory'
 import type { LeagueFile, Meta } from '../history/types'
-import { dataAge } from '../rankings/compute'
+import { dataStatus } from '../rankings/compute'
 
 export function Seg<T extends string | number>({ value, options, onChange, disabled }: {
   value: T
@@ -68,20 +68,22 @@ export function useHistory(keys: string[]) {
   return { ...state, retry: () => setAttempt(a => a + 1) }
 }
 
-export function DataStatus({ meta, games, loading, errors, missing, onRetry }: {
-  meta: Meta | null; games: number; loading: boolean; errors: string[]; missing: boolean; onRetry: () => void
+export function DataStatus({ files, meta, games, gamesLabel, loading, errors, missing, onRetry }: {
+  files: LeagueFile[]; meta: Meta | null; games: number; gamesLabel: string
+  loading: boolean; errors: string[]; missing: boolean; onRetry: () => void
 }) {
   if (loading) return <p className="empty">Carregando histórico…</p>
   if (missing) return <p className="empty">O histórico ainda está sendo montado. Volte mais tarde.</p>
-  const age = meta ? dataAge(meta.updated_at, new Date()) : null
+  const st = files.length ? dataStatus(files, meta, new Date()) : null
   return (
     <>
-      {age && (
-        <p className={`nage ${age.stale ? 'stale' : ''}`}>
-          {age.stale ? `${age.label.replace('Dados até', 'Dados de')} — o robô diário pode estar parado.` : age.label}
-          {' · '}{games.toLocaleString('pt-BR')} jogos considerados
+      {st && (
+        <p className={`nage ${st.stale ? 'stale' : ''}`}>
+          {st.label}{st.stale ? ' — dados atrasados; o robô diário pode estar parado.' : ''}
+          {' · '}{games.toLocaleString('pt-BR')} {gamesLabel}
         </p>
       )}
+      {st && st.problems.length > 0 && <div className="dwarn">{st.problems.join(' · ')}</div>}
       {errors.length > 0 && (
         <div className="dwarn">
           Não foi possível carregar: {errors.join('; ')}. <button className="linkbtn" onClick={onRetry}>Tentar de novo</button>

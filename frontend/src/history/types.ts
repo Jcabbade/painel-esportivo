@@ -25,5 +25,5 @@ export interface LeagueFile {
 
 export interface Meta {
   updated_at: string
-  leagues: Record<string, { games: number; scanned_until: string | null; error: string | null }>
+  leagues: Record<string, { games: number; scanned_until: string | null; error: string | null; pending?: boolean }>
 }
