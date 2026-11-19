@@ -237,7 +237,7 @@ Estatísticas especiais:
 
 **Files:**
 - Create: `frontend/src/history/loadHistory.ts`, `frontend/src/components/RankingFilters.tsx`, `frontend/src/components/LeaguesRanking.tsx`, `frontend/src/components/TeamsRanking.tsx`
-- Modify: `frontend/src/App.tsx` (navegação **Jogos · Tabela · Ligas · Times**; "Classificação" vira "Tabela" para caber no celular), `frontend/src/styles.css`
+- Modify: `frontend/src/App.tsx` (navegação **Jogos · Tabela · Notícias · Ligas · Times** — "Tabela" e "Notícias" já vêm do Plano 2b; no celular a barra rola na horizontal), `frontend/src/styles.css`
 
 **Interfaces:**
 - Consumes: Task 4; `public/data/*.json`.
