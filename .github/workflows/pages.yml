@@ -1,27 +1,34 @@
 name: Publicar painel
 
+# Publica o site a cada push na main. Uma vez por dia (09:00 de Brasília) e no disparo manual,
+# antes de publicar, atualiza o histórico de jogos (ramo `data`) usado pelos rankings.
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '0 12 * * *'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false   # nunca interromper uma carga do histórico em andamento
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 330
     defaults:
       run:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # o token de escrita não fica no disco durante o npm ci
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -29,6 +36,46 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm test
+      - name: Histórico anterior
+        # Ramo inexistente = começa vazio; qualquer outra falha interrompe (nunca publicar um histórico vazio por engano).
+        working-directory: .
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p data-store
+          REMOTE="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          set +e
+          git ls-remote --exit-code --heads "$REMOTE" data > /dev/null
+          code=$?
+          set -e
+          if [ "$code" = "2" ]; then
+            echo "ramo data ainda não existe: começando vazio"
+          elif [ "$code" = "0" ]; then
+            git fetch -q --depth=1 "$REMOTE" data
+            git archive FETCH_HEAD | tar -x -C data-store
+          else
+            echo "não foi possível consultar o ramo data (código $code)"; exit 1
+          fi
+      - name: Atualizar histórico
+        if: github.event_name != 'push'
+        timeout-minutes: 300
+        run: npm run update-data -- ../data-store
+      - name: Gravar histórico no ramo data
+        if: github.event_name != 'push'
+        working-directory: data-store
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "dados: $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" HEAD:data
+      - name: Copiar histórico para o site
+        run: |
+          mkdir -p public/data
+          cp ../data-store/*.json public/data/ 2>/dev/null || echo "sem histórico ainda"
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

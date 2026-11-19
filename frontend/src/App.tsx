@@ -5,6 +5,8 @@ import { GameList } from './components/GameList'
 import { StaleBanner } from './components/StaleBanner'
 import { StandingsPage } from './components/StandingsPage'
 import { NewsPage } from './components/NewsPage'
+import { LeaguesRanking } from './components/LeaguesRanking'
+import { TeamsRanking } from './components/TeamsRanking'
 import { FavoritesNews } from './components/news/FavoritesNews'
 import { loadNews } from './news/loadNews'
 import type { NewsFile } from './news/types'
@@ -16,8 +18,8 @@ import { loadDay, refreshLive, withFavorites } from './espn/loadDay'
 import { getFavorites, toggleFavorite } from './espn/store'
 import type { Game, GamesResponse, Side } from './types'
 
-type View = 'jogos' | 'classificacao' | 'noticias'
-const VIEWS: View[] = ['jogos', 'classificacao', 'noticias']
+type View = 'jogos' | 'classificacao' | 'noticias' | 'ligas' | 'times'
+const VIEWS: View[] = ['jogos', 'classificacao', 'noticias', 'ligas', 'times']
 const NEWS_REFRESH = 300_000
 
 function readOnlyFavs(): boolean {
@@ -141,12 +143,16 @@ export default function App() {
           <button className={view === 'jogos' ? 'on' : ''} onClick={() => setView('jogos')}>Jogos</button>
           <button className={view === 'classificacao' ? 'on' : ''} onClick={() => setView('classificacao')}>Tabela</button>
           <button className={view === 'noticias' ? 'on' : ''} onClick={() => setView('noticias')}>Notícias</button>
+          <button className={view === 'ligas' ? 'on' : ''} onClick={() => setView('ligas')}>Ligas</button>
+          <button className={view === 'times' ? 'on' : ''} onClick={() => setView('times')}>Times</button>
         </nav>
         {view === 'jogos' ? <DayBar today={today} selected={day} onSelect={setDay} /> : <div className="spacer" />}
         <button className="theme" aria-label="Alternar tema"
           onClick={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}>◐</button>
       </header>
       {view === 'classificacao' ? <main className="body single"><StandingsPage /></main>
+        : view === 'ligas' ? <main className="body single"><LeaguesRanking /></main>
+        : view === 'times' ? <main className="body single"><TeamsRanking /></main>
         : view === 'noticias' ? <main className="body single">
           <NewsPage file={news} error={newsError} favs={favKeys} onlyFavs={onlyFavNews} onOnlyFavs={setOnlyFavNews} onRetry={refreshNews} />
         </main> : <>

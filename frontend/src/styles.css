@@ -191,6 +191,27 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .nage.stale { color: var(--warn); background: var(--warn-soft); padding: 6px 10px; border-radius: 8px; }
 .more { display: block; margin: 12px auto; border: 1px solid var(--border); background: var(--surface2); border-radius: 8px; padding: 6px 16px; }
 
+.rank-page { display: flex; flex-direction: column; min-height: 0; max-width: 980px; width: 100%; margin: 0 auto; }
+.rfilters { gap: 8px; }
+.rfilters > .seg { align-self: flex-start; max-width: 100%; overflow-x: auto; }
+.rrow .seg { max-width: 100%; overflow-x: auto; }
+.rrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rfield { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.rfield select { font: inherit; font-size: 13px; color: var(--text); background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 8px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.stepper button { border: 0; background: var(--surface); width: 30px; height: 30px; font-size: 16px; }
+.stepper b { min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; font-size: 13px; }
+.seg button:disabled { opacity: .4; cursor: default; }
+.tbl.rank td, .tbl.rank th { padding: 7px 8px; }
+.form { display: inline-flex; gap: 3px; }
+.form i { font-style: normal; font-size: 10.5px; font-weight: 700; width: 17px; height: 17px; border-radius: 4px; display: grid; place-items: center; color: #fff; }
+.form .f-V { background: #1f9d55; }
+.form .f-E { background: #7b8494; }
+.form .f-D { background: #d64545; }
+.views { flex: none; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.views button { white-space: nowrap; }
+
 @media (max-width: 899px) {
   .body { grid-template-columns: minmax(0, 1fr); }
   .left { border-right: 0; }
@@ -204,7 +225,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .when { width: 62px; }
   .detail { padding: 16px 12px; }
   .top { flex-wrap: wrap; }
-  .views { order: -1; }
+  .views { order: -1; flex: 1 1 auto; min-width: 0; }
   .views button { padding: 5px 8px; }
   .daybar { flex-basis: 100%; order: 2; }
   .favnews { padding: 4px 12px 8px; }
