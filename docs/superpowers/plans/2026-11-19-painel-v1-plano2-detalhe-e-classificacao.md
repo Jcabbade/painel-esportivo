@@ -16,7 +16,7 @@
 - "O que a ESPN não trouxer para um jogo fica oculto (não mostrar seção vazia nem estimar)."
 - Textos da tela em português; fuso `America/Sao_Paulo`.
 - `Game`/`GamesResponse` de `types.ts` não mudam.
-- Fixtures reais em `backend/tests/fixtures/` (já baixadas e enxugadas): `sum_PL_401879244.json` (Brighton 2×0 Brentford, encerrado), `sum_UCL_401862582.json` (Barcelona × Newcastle, 2º jogo, agregado 8–3), `sum_NBA_401910002.json` (TOR 111 × GSW 102... ver header), `sum_NFL_401873065.json` (LAC 20 × BAL 23), `sum_PL_scheduled.json` (Hull, agendado), `standings_PL/UCL/NBA/NFL.json` (conferência), `standings_NBA_div.json`, `standings_NFL_div.json` (`?level=3`).
+- Fixtures reais em `backend/tests/fixtures/` (já baixadas e enxugadas): `sum_PL_401879244.json` (Brighton 2×0 Brentford, encerrado), `sum_UCL_401862582.json` (Barcelona × Newcastle, 2º jogo, agregado 8–3), `sum_NBA_401910002.json` (Raptors 102 × 111 Knicks; casa = Raptors), `sum_NFL_401873065.json` (Ravens 20 × 23 Chargers; casa = Ravens), `sum_PL_scheduled.json` (Hull, agendado), `standings_PL/UCL/NBA/NFL.json` (conferência), `standings_NBA_div.json`, `standings_NFL_div.json` (`?level=3`).
 - Commits com o e-mail noreply já configurado no repositório; push na `main` publica o site.
 
 ## O que a ESPN entrega (recon de 19/11)
@@ -81,7 +81,7 @@ Rótulos das estatísticas (`name` ESPN → texto):
 - Produces (`summary.ts`): `parseSummary(game: Game, payload: unknown): GameDetail` — usa `game.home.team_id`/`game.away.team_id` para saber o lado; `game.status` decide se `stats` é preenchido.
 
 - [ ] **Step 1: Testes que falham** (`summary.test.ts`, fixtures via `readFixture`; `Game` montado com `parseScoreboard` do scoreboard correspondente ou à mão com os ids certos):
-  - `soccer final has translated stats`: PL 401879244 → `stats` contém `{label:'Escanteios', home:'7', away:<valor do fixture>}` e `{label:'Posse de bola (%)', home:'75.3', …}`; nenhum rótulo fora da lista do plano.
+  - `soccer final has translated stats`: PL 401879244 → `stats` contém `{label:'Escanteios', home:'7', away:'3'}` e `{label:'Posse de bola (%)', home:'75.3', …}`; nenhum rótulo fora da lista do plano.
   - `soccer events in order`: primeiro evento `{minute:"5'", kind:'yellow', side:'away', player:'Kristoffer Ajer'}`; contém `{minute:"15'", kind:'goal', side:'home', player:'Diego Gómez'}`, `{minute:"23'", kind:'red', side:'away'}`, `{minute:"42'", kind:'penalty_goal', side:'home'}`, `{kind:'halftime'}`; substituição de 45' do Brentford → `player:'Yehor Yarmoliuk', playerOut:'Dango Ouattara'`.
   - `soccer events skip noise and unknown types`: nenhum evento com `kickoff/start-delay/end-delay/start-2nd-half/end-regular-time`; um `keyEvents` extra com `type.type:'var-check'` e outro sem `participants` de tipo `goal` → o primeiro some, o segundo vira gol com `player:null`; os demais continuam.
   - `soccer lineups`: casa `formation:'4-2-3-1'`, 11 titulares, primeiro `{name:'Bart Verbruggen', number:'1', position:'G'}`; reservas = o resto.
@@ -105,11 +105,11 @@ Rótulos das estatísticas (`name` ESPN → texto):
 
 - [ ] **Step 1: Testes que falham:**
   - `nba periods`: NBA 401910002 → `periods.labels = ['1º','2º','3º','4º']`, `home = ['29','21','33','19']`, `away = ['23','31','26','31']`. Prorrogação: 5º período em diante vira `'OT'`, `'2OT'`… (teste com payload montado de 5 linescores → labels termina em `'OT'`).
-  - `nba stats`: contém `{label:'Arremessos', home:'41-78', …}` e `{label:'Rebotes', home:'44', …}`.
-  - `nba box marks did-not-play`: `box.home`/`box.away` com 1 grupo, `labels[0]==='MIN'`; titular `OG Anunoby` com `stats[1]==='16'`; jogador com `didNotPlay` → `stats: []`, `dnp: 'COACH\'S DECISION'`.
-  - `nfl box groups`: NFL 401873065 → grupos na ordem passing, rushing, receiving, defensive, interceptions, kicking, punting, kickReturns, puntReturns, fumbles, com títulos `Passe, Corrida, Recepção, Defesa, Interceptações, Chutes, Punts, Retorno de kickoff, Retorno de punt, Fumbles`; passe do LAC = `Justin Herbert` `['12/18','129',…]`.
+  - `nba stats`: contém `{label:'Arremessos', …}` com `'41-78'` no lado do time certo (lado decidido por `team.id`, nunca pela ordem do payload) e `{label:'Rebotes', …}`.
+  - `nba box marks did-not-play`: `box.home`/`box.away` com 1 grupo, `labels[0]==='MIN'`; `box.away` (Knicks) tem o titular `OG Anunoby` com `stats[1]==='16'` (o payload lista os Knicks primeiro: prova o lado por `team.id`); `Kyle Anderson` em `box.home` (Raptors) → `stats: []`, `dnp: "COACH'S DECISION"`.
+  - `nfl box groups`: NFL 401873065 → grupos na ordem passing, rushing, receiving, defensive, interceptions, kicking, punting, kickReturns, puntReturns, fumbles, com títulos `Passe, Corrida, Recepção, Defesa, Interceptações, Chutes, Punts, Retorno de kickoff, Retorno de punt, Fumbles`; passe dos Chargers (`box.away`) = `Justin Herbert` `['12/18','129',…]`.
   - `nfl has no h2h`: `h2h === null` (`seasonseries` null).
-  - `nfl stats`: contém `{label:'Jardas totais', …}` e `{label:'Posse de bola', home|away:'30:02'}`.
+  - `nfl stats`: contém `{label:'Jardas totais', …}` e `{label:'Posse de bola', home:'29:58', away:'30:02'}`.
 - [ ] **Step 2:** `npm test` → FAIL.
 - [ ] **Step 3:** Implementar. Lados dos `boxscore.players[]` por `team.id`. Grupos ausentes no payload não aparecem.
 - [ ] **Step 4:** `npm test` → PASS.
