@@ -58,7 +58,7 @@ describe('parseSummary — futebol', () => {
     for (const k of ['kickoff', 'start-delay', 'end-delay', 'start-2nd-half', 'end-regular-time'])
       expect(d.events.map(e => e.kind)).not.toContain(k)
     expect(d.events.length).toBe(base + 1)
-    expect(d.events.at(-1)).toEqual({ minute: "61'", kind: 'goal', side: 'away', player: null, playerOut: null })
+    expect(d.events[d.events.length - 1]).toEqual({ minute: "61'", kind: 'goal', side: 'away', player: null, playerOut: null })
   })
 
   it('soccer lineups', () => {

@@ -159,7 +159,7 @@ function periodLabel(i: number): string {
   return i === 4 ? 'OT' : `${i - 3}OT`
 }
 
-function parsePeriods(game: Game, payload: any): GameDetail['periods'] {
+function parsePeriods(payload: any): GameDetail['periods'] {
   const comp = payload?.header?.competitions?.[0]
   const res: Partial<Record<SideKey, string[]>> = {}
   for (const c of comp?.competitors ?? []) {
@@ -226,7 +226,7 @@ export function parseSummary(game: Game, payload: unknown): GameDetail {
     stats: parseStats(game, p),
     events: game.sport === 'soccer' ? parseEvents(game, p) : [],
     lineups: game.sport === 'soccer' ? parseLineups(game, p) : null,
-    periods: game.sport === 'soccer' ? null : parsePeriods(game, p),
+    periods: game.sport === 'soccer' ? null : parsePeriods(p),
     box: game.sport === 'soccer' ? null : parseBox(game, p),
     h2h: parseH2H(p),
     aggregate: parseAggregate(p),
