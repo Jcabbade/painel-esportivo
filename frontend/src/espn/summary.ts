@@ -1,5 +1,6 @@
 /* Interpreta o summary da ESPN (detalhe de um jogo). Só reorganiza o que veio; nada é calculado. */
 import type { Game, Sport } from '../types'
+import { cornerBuckets } from '../history/players'
 import type {
   Aggregate, BoxGroup, BoxPlayer, GameDetail, H2H, Lineup, LineupPlayer, SoccerEvent, SoccerEventKind, StatRow,
 } from './detailTypes'
@@ -124,7 +125,7 @@ function parseLineups(game: Game, payload: any): { home: Lineup; away: Lineup } 
       const name = p?.athlete?.displayName
       if (!name) continue
       const pl: LineupPlayer = {
-        name, number: p.jersey ?? null, position: p.position?.abbreviation ?? null,
+        id: p.athlete?.id != null ? String(p.athlete.id) : null, name, number: p.jersey ?? null, position: p.position?.abbreviation ?? null,
         subbedIn: !!p.subbedIn, subbedOut: !!p.subbedOut,
       }
       ;(p.starter ? starters : bench).push(pl)
@@ -229,6 +230,10 @@ function parseAggregate(payload: any): Aggregate | null {
   return { leg: leg ? LEGS[leg] ?? leg : null, round: series?.title ?? null, home: h, away: a }
 }
 
+function headerName(p: any, ha: 'home' | 'away'): string {
+  return (p?.header?.competitions?.[0]?.competitors ?? []).find((c: any) => c?.homeAway === ha)?.team?.displayName ?? ''
+}
+
 export function parseSummary(game: Game, payload: unknown): GameDetail {
   const p = payload as any
   const attendance = score(p?.gameInfo?.attendance)
@@ -241,5 +246,7 @@ export function parseSummary(game: Game, payload: unknown): GameDetail {
     h2h: parseH2H(p),
     aggregate: parseAggregate(p),
     attendance: attendance && attendance > 0 ? attendance : null,
+    corners: game.sport === 'soccer' && Array.isArray(p?.commentary) && p.commentary.length
+      ? cornerBuckets(p, headerName(p, 'home'), headerName(p, 'away')) : null,
   }
 }

@@ -14,6 +14,7 @@ export interface SoccerEvent {
 }
 
 export interface LineupPlayer {
+  id: string | null
   name: string
   number: string | null
   position: string | null
@@ -40,4 +41,6 @@ export interface GameDetail {
   h2h: H2H | null
   aggregate: Aggregate | null
   attendance: number | null
+  /** Escanteios por faixa de 10 min (só se a narração bater com o total oficial). */
+  corners: { h: number[]; a: number[] } | null
 }

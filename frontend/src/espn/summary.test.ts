@@ -91,6 +91,14 @@ describe('parseSummary — futebol', () => {
     expect(goals.find(e => e.minute === "56'")).toMatchObject({ kind: 'goal' })
   })
 
+  it('lineup players carry ids and game corner buckets', () => {
+    const full = fixture('sum_PL_401879244_full.json')
+    const d = parseSummary(gameOf(full, 'PL', 'soccer', 'final'), full)
+    expect(d.lineups!.home.starters[0].id).toMatch(/^\d+$/)
+    expect(d.corners?.h.reduce((x, y) => x + y, 0)).toBe(7)
+    expect(parseSummary(plGame, pl).corners).toBeNull()   // fixture sem narração
+  })
+
   it('ucl second leg aggregate', () => {
     const ucl = fixture('sum_UCL_401862582.json')
     const d = parseSummary(gameOf(ucl, 'UCL', 'soccer', 'final'), ucl)

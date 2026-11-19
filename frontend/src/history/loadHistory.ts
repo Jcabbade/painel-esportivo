@@ -1,5 +1,5 @@
 /* Histórico publicado junto com o site (public/data/), lido pelo navegador. */
-import type { LeagueFile, Meta } from './types'
+import type { LeagueFile, Meta, PlayersFile } from './types'
 
 export class HistoryMissing extends Error {
   constructor() { super('O histórico ainda está sendo montado.') }
@@ -37,4 +37,17 @@ export function loadMeta(): Promise<Meta> {
     meta.catch(() => { meta = null })
   }
   return meta
+}
+
+const players = new Map<string, Promise<PlayersFile>>()
+
+/** Números de jogadores por jogo (arquivo maior: só baixado ao abrir a aba Jogadores). */
+export function loadPlayers(leagueKey: string): Promise<PlayersFile> {
+  let p = players.get(leagueKey)
+  if (!p) {
+    p = getJson<PlayersFile>(`players-${leagueKey}.json`)
+    p.catch(() => players.delete(leagueKey))
+    players.set(leagueKey, p)
+  }
+  return p
 }

@@ -16,6 +16,21 @@ import { NewsCard } from './news/NewsCard'
 import { newsForGame } from '../news/loadNews'
 import type { NewsFile } from '../news/types'
 import { Section } from './detail/Section'
+import { CornersTab } from './analysis/CornersTab'
+import { H2HTab } from './analysis/H2HTab'
+import { LineupTab } from './analysis/LineupTab'
+import { PlayersTab } from './analysis/PlayersTab'
+import { PregameTab } from './analysis/PregameTab'
+
+type DetailTab = 'jogo' | 'prejogo' | 'h2h' | 'escalacao' | 'jogadores' | 'escanteios'
+const TAB_LABELS: Record<DetailTab, string> = {
+  jogo: 'Jogo', prejogo: 'Pré-jogo', h2h: 'H2H', escalacao: 'Escalação', jogadores: 'Jogadores', escanteios: 'Escanteios',
+}
+const tabsFor = (sport: string): DetailTab[] =>
+  sport === 'soccer' ? ['jogo', 'prejogo', 'h2h', 'escalacao', 'jogadores', 'escanteios'] : ['jogo', 'prejogo', 'h2h', 'jogadores']
+function readTab(): DetailTab {
+  try { return (localStorage.getItem('painel.aba_jogo') as DetailTab) || 'jogo' } catch { return 'jogo' }
+}
 
 interface Props {
   game: Game | null
@@ -44,6 +59,11 @@ function aggText(a: Aggregate): string {
 export function DetailPane({ game, leagueName, onClose, news, favs, onSeeAllNews }: Props) {
   const [state, setState] = useState<DetailState>({ detail: null, error: null })
   const [loading, setLoading] = useState(false)
+  const [tabPref, setTabPref] = useState<DetailTab>(readTab)
+  const chooseTab = (t: DetailTab) => {
+    setTabPref(t)
+    try { localStorage.setItem('painel.aba_jogo', t) } catch { /* ignora */ }
+  }
   const loader = useRef(createDetailLoader())
   const current = useRef(game)
   current.current = game
@@ -101,6 +121,7 @@ export function DetailPane({ game, leagueName, onClose, news, favs, onSeeAllNews
   }
   const showScore = game.status === 'live' || game.status === 'final'
   const gameNews = news ? newsForGame(news, game) : []
+  const tab: DetailTab = tabsFor(game.sport).includes(tabPref) ? tabPref : 'jogo'
   const d = state.detail
   return (
     <aside className="detail open">
@@ -121,6 +142,19 @@ export function DetailPane({ game, leagueName, onClose, news, favs, onSeeAllNews
         {d?.attendance && <><dt>Público</dt><dd>{d.attendance.toLocaleString('pt-BR')}</dd></>}
       </dl>
 
+      <div className="dtabs">
+        {tabsFor(game.sport).map(t => (
+          <button key={t} className={tab === t ? 'on' : ''} onClick={() => chooseTab(t)}>{TAB_LABELS[t]}</button>
+        ))}
+      </div>
+
+      {tab === 'prejogo' && <PregameTab key={game.id} game={game} />}
+      {tab === 'h2h' && <H2HTab key={game.id} game={game} />}
+      {tab === 'escalacao' && (d || !loading ? <LineupTab game={game} detail={d} /> : <p className="soon">Carregando…</p>)}
+      {tab === 'jogadores' && <PlayersTab key={game.id} game={game} detail={d} />}
+      {tab === 'escanteios' && <CornersTab key={game.id} game={game} detail={d} />}
+
+      {tab === 'jogo' && <>
       {!d && loading && <p className="soon">Carregando detalhes…</p>}
       {!d && !loading && state.error && (
         <div className="derr">
@@ -146,6 +180,7 @@ export function DetailPane({ game, leagueName, onClose, news, favs, onSeeAllNews
           </div>
         </Section>
       )}
+      </>}
     </aside>
   )
 }
