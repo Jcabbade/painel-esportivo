@@ -55,7 +55,7 @@ def test_network_error_raises():
 
 def test_throttle():
     c = make(lambda req: httpx.Response(200, json={}), min_interval=0.2)
-    t0 = time.monotonic()
+    t0 = time.perf_counter()
     c.standings(league("PL"))
     c.standings(league("PL"))
-    assert time.monotonic() - t0 >= 0.2
+    assert time.perf_counter() - t0 >= 0.2

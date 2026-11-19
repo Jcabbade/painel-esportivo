@@ -27,7 +27,7 @@ class EspnClient:
 
     def _get(self, url: str, params: dict | None = None) -> dict:
         with self._lock:
-            wait = self._min_interval - (time.monotonic() - self._last)
+            wait = self._min_interval - (time.perf_counter() - self._last)
             if wait > 0:
                 time.sleep(wait)
             try:
@@ -35,7 +35,7 @@ class EspnClient:
             except httpx.HTTPError as e:
                 raise EspnError(f"falha de rede: {e}") from e
             finally:
-                self._last = time.monotonic()
+                self._last = time.perf_counter()
         if r.status_code != 200:
             raise EspnError(f"ESPN respondeu {r.status_code} em {url}")
         try:
