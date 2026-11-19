@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "update-news": "vite-node scripts/update-news.ts"
+    "update-news": "vite-node scripts/update-news.ts",
+    "update-data": "vite-node scripts/update-data.ts"
   },
   "dependencies": {
     "react": "^19.1.0",
