@@ -1,12 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { league } from './leagues'
 import { parseScoreboard, parseStandings } from './parse'
-
-export const FIX_DIR = resolve(__dirname, '../../../backend/tests/fixtures')
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const fixture = (name: string): any => JSON.parse(readFileSync(resolve(FIX_DIR, name), 'utf-8'))
+import { fixture } from './testFixtures'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function withStatus(payload: any, state: string, name: string, short = '') {
