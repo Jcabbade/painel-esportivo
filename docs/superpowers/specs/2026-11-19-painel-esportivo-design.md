@@ -126,3 +126,27 @@ O usuário quer abrir o painel no celular sem depender do notebook ligado. O pai
 - Rankings só comparam ligas do mesmo esporte; "Todas" nos rankings de times = todas as ligas de futebol cobertas.
 - Pontos por tempo na NBA/NFL = soma dos quartos (1º tempo = Q1+Q2; 2º tempo = Q3+Q4, sem prorrogação); jogo todo inclui prorrogação.
 - Se o robô parar (o GitHub pausa agendamentos após 60 dias sem atividade em repositório público), o painel mostra a data dos dados bem visível.
+
+## 10. Revisão (2026-11-19): notícias e redes (antes do Plano 3), aprovada pelo usuário
+
+**O que o usuário quer:** notícias em português em destaque dos **times favoritos** e do **jogo clicado**; acompanhar contas de redes (ex.: Fabrizio Romano, que ele segue no X).
+
+**Fontes (conferidas em 19/11):**
+| Fonte | Como | Uso |
+|---|---|---|
+| ESPN Brasil | `.../news?lang=pt&region=br&limit=50` por liga; notícias marcadas com ids de times | 7 ligas |
+| Fabrizio Romano — Telegram | página pública `t.me/s/FabrizioRomanoTG` (espelha o que ele posta no X; em inglês) | todas |
+| Fabrizio Romano — YouTube | feed oficial `youtube.com/feeds/videos.xml?channel_id=UCX1em-uaFMS02Rrk_Bowyng` | todas |
+| Hoops Brasil | RSS `hoopsbrasil.com.br/feed/` | NBA |
+| Placar | RSS `placar.com.br/rss.xml`; seção pelo endereço (`campeonato-ingles`, `campeonato-espanhol`, `champions-league`, `nba`, `nfl`; `futebol-europeu`/`futebol-internacional`/`mercado-da-bola` só se citar time coberto) | futebol, NBA, NFL |
+| ge | RSS `ge.globo.com/rss/ge/futebol/`, só itens que citam time coberto | futebol |
+| Jumper Brasil | RSS `jumperbrasil.com.br/?feed=rss2` (parado desde 15/09; entra para voltar sozinho) | NBA |
+
+**Rejeitadas:** X (leitura só paga; incorporação exige login), Instagram/TikTok/Facebook (sem leitura grátis), RDZN e OneFootball (sem feed; exigiria raspar a página).
+
+**Como:**
+- Robô a cada 30 min (GitHub Actions) lê as fontes e grava `news.json` no ramo `news` do repositório; o site lê direto de `raw.githubusercontent.com` (CORS liberado, cache de 5 min) — sem republicar o site.
+- Mostra só título, resumo curto, foto, fonte, horário e link para a matéria original; nunca o texto completo.
+- Time de cada notícia: na ESPN pela marcação dela; nas demais, pelo nome do time no título/resumo (com apelidos em português; nomes curtos ambíguos como "United" não contam sozinhos).
+- Fonte que falhar mantém os itens da execução anterior e aparece como "fora do ar" no filtro; notícias com mais de 7 dias saem.
+- Telas: bloco "Notícias dos seus times" na aba Favoritos (e no painel da direita vazio, no computador); seção "Notícias" no detalhe do jogo (itens que citam um dos dois times); aba "Notícias" com o fluxo completo e filtro por fonte.
