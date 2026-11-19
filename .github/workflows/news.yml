@@ -20,6 +20,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # o token de escrita não fica no disco durante o npm ci
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -28,10 +30,25 @@ jobs:
       - run: npm ci
         working-directory: frontend
       - name: Arquivo anterior
+        # Lido pelo git (sem cache de CDN). Ramo inexistente = começa vazio; qualquer outra falha interrompe,
+        # para nunca sobrescrever o arquivo bom com um vazio.
+        env:
+          TOKEN: ${{ github.token }}
         run: |
           mkdir -p news-store
-          curl -sfL "https://raw.githubusercontent.com/${{ github.repository }}/news/news.json" -o news-store/news.json \
-            || rm -f news-store/news.json
+          REMOTE="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          set +e
+          git ls-remote --exit-code --heads "$REMOTE" news > /dev/null
+          code=$?
+          set -e
+          if [ "$code" = "2" ]; then
+            echo "ramo news ainda não existe: começando vazio"
+          elif [ "$code" = "0" ]; then
+            git fetch -q --depth=1 "$REMOTE" news
+            git show FETCH_HEAD:news.json > news-store/news.json
+          else
+            echo "não foi possível consultar o ramo news (código $code)"; exit 1
+          fi
       - name: Buscar notícias
         run: npm run update-news -- ../news-store/news.json
         working-directory: frontend

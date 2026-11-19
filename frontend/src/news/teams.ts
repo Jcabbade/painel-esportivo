@@ -23,6 +23,10 @@ export const ALIASES: Record<string, string> = {
     ("Atlético" = Atlético-MG/PR no noticiário daqui; "Inter" = Internacional, por isso não é apelido). */
 const COMMON_WORDS = new Set(['como', 'levante', 'granada', 'atletico'])
 
+/** Nomes de uma palavra que, em texto brasileiro, costumam ser outra coisa (Everton Ribeiro, Barcelona-EQU,
+    Liverpool-URU, a cidade de Valência, o verbo "pisa"). Só contam fora do modo estrito. */
+const STRICT_AMBIGUOUS = new Set(['everton', 'barcelona', 'liverpool', 'valencia', 'pisa'])
+
 export interface TeamIndex {
   /** nome normalizado → chaves 'sport:id' (mais de uma = ambíguo) */
   names: Map<string, Set<string>>
@@ -66,12 +70,13 @@ export function buildTeamIndex(standings: { league: string; sport: Sport; payloa
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /** Chaves 'sport:id' dos times citados, sem repetir, na ordem em que aparecem. */
-export function matchTeams(text: string, index: TeamIndex, sport?: Sport): string[] {
+export function matchTeams(text: string, index: TeamIndex, sport?: Sport, opts: { strict?: boolean } = {}): string[] {
   const t = norm(text)
   const found = new Map<string, number>()
   for (const [name, keys] of index.names) {
     const cand = [...keys].filter(k => !sport || k.startsWith(`${sport}:`))
     if (cand.length !== 1) continue // nome ambíguo (ou de outro esporte): não conta sozinho
+    if (opts.strict && STRICT_AMBIGUOUS.has(name)) continue
     const m = new RegExp(`(^|[^a-z0-9])${escape(name)}($|[^a-z0-9])`).exec(t)
     if (!m) continue
     const pos = m.index + m[1].length

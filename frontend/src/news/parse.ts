@@ -19,7 +19,7 @@ function decode(s: string): string {
   return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
     if (e[0] === '#') {
       const n = e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)
-      return Number.isFinite(n) ? String.fromCodePoint(n) : m
+      return Number.isFinite(n) && n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m
     }
     return ENTITIES[e.toLowerCase()] ?? m
   })
@@ -88,10 +88,12 @@ function rssImage(it: any): string | null {
   return /<img[^>]+src="([^"]+)"/i.exec(html)?.[1] ?? null
 }
 
-function parseRss(source: SourceId, body: string, ctx: ParseCtx, rule: (url: string, text: string) =>
-  { keep: boolean; leagues: string[]; sport?: Sport }): NewsItem[] {
+type Rule = { keep: boolean; leagues: string[]; sport?: Sport; strict?: boolean }
+
+function parseRss(source: SourceId, body: string, ctx: ParseCtx, rule: (url: string, text: string) => Rule): NewsItem[] {
   const out: NewsItem[] = []
   for (const it of rssItems(body)) {
+    try {
     const title = txt(it.title)
     const summary = txt(it.description) || txt(it['content:encoded'])
     const url = normalizeUrl(txt(it.link))
@@ -99,9 +101,12 @@ function parseRss(source: SourceId, body: string, ctx: ParseCtx, rule: (url: str
     const text = `${toText(title)} ${toText(summary)}`
     const r = rule(url, text)
     if (!r.keep) continue
-    const teams = matchTeams(text, ctx.index, r.sport)
+    const teams = matchTeams(text, ctx.index, r.sport, { strict: r.strict })
     const n = item(source, { title, summary, url, image: rssImage(it), published: txt(it.pubDate), leagues: r.leagues, teams })
     if (n) out.push(n)
+    } catch (e) {
+      console.warn(`[noticias] item de ${source} ignorado:`, e) // um item ruim não derruba a fonte
+    }
   }
   return out
 }
@@ -119,7 +124,7 @@ function parseEspn(body: unknown, ctx: ParseCtx): NewsItem[] {
         title: a.headline ?? '', summary: a.description ?? '', url: a.links?.web?.href,
         image: a.images?.[0]?.url, published: a.published,
         video: a.type === 'Media', leagues: lg ? [lg.key] : [],
-        teams: [...tagged, ...matchTeams(text, ctx.index, lg?.sport)],
+        teams: [...tagged, ...matchTeams(text, ctx.index, lg?.sport, { strict: true })],
       })
       if (n) out.push(n)
     } catch (e) {
@@ -132,6 +137,7 @@ function parseEspn(body: unknown, ctx: ParseCtx): NewsItem[] {
 function parseTelegram(body: string, ctx: ParseCtx): NewsItem[] {
   const out: NewsItem[] = []
   for (const b of body.split('class="tgme_widget_message_wrap').slice(1)) {
+    try {
     const post = /data-post="([\w]+\/\d+)"/.exec(b)?.[1]
     const time = /<time[^>]*datetime="([^"]+)"/.exec(b)?.[1]
     const html = /class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/.exec(b)?.[1]
@@ -145,9 +151,12 @@ function parseTelegram(body: string, ctx: ParseCtx): NewsItem[] {
       title: toText(lines[0], 120), summary: lines[0].length > 120 ? full : lines.slice(1).join(' '),
       url: `https://t.me/${post}`,
       image: photo, published: time, video: /tgme_widget_message_video/.test(b),
-      teams: matchTeams(full, ctx.index),
+      teams: matchTeams(full, ctx.index, 'soccer'), // Fabrizio cobre futebol: "Eagles"/"Saints" não viram NFL
     })
     if (n) out.push(n)
+    } catch (e) {
+      console.warn('[noticias] post do Telegram ignorado:', e)
+    }
   }
   return out
 }
@@ -156,14 +165,18 @@ function parseYouTube(body: string, ctx: ParseCtx): NewsItem[] {
   const doc = xml.parse(body)
   const out: NewsItem[] = []
   for (const e of arr(doc?.feed?.entry)) {
+    try {
     const g = e['media:group'] ?? {}
     const title = txt(e.title)
     const summary = txt(g['media:description'])
     const n = item('fabrizio_yt', {
       title, summary, url: arr(e.link)[0]?.['@_href'], image: g['media:thumbnail']?.['@_url'],
-      published: txt(e.published), video: true, teams: matchTeams(title, ctx.index),
+      published: txt(e.published), video: true, teams: matchTeams(title, ctx.index, 'soccer'),
     })
     if (n) out.push(n)
+    } catch (err) {
+      console.warn('[noticias] vídeo do YouTube ignorado:', err)
+    }
   }
   return out
 }
@@ -174,7 +187,7 @@ function placarRule(url: string, text: string, index: TeamIndex) {
   const lg = PLACAR_SECTIONS[section]
   const sport: Sport = lg === 'NBA' ? 'basketball' : lg === 'NFL' ? 'football' : 'soccer'
   if (lg) return { keep: true, leagues: [lg], sport }
-  return { keep: matchTeams(text, index, 'soccer').length > 0, leagues: [], sport }
+  return { keep: matchTeams(text, index, 'soccer', { strict: true }).length > 0, leagues: [], sport, strict: true }
 }
 
 export function parseSource(id: SourceId, body: unknown, ctx: ParseCtx): NewsItem[] {
@@ -186,6 +199,6 @@ export function parseSource(id: SourceId, body: unknown, ctx: ParseCtx): NewsIte
     case 'jumper': return parseRss(id, String(body), ctx, () => ({ keep: true, leagues: ['NBA'], sport: 'basketball' }))
     case 'placar': return parseRss(id, String(body), ctx, (url, text) => placarRule(url, text, ctx.index))
     case 'ge': return parseRss(id, String(body), ctx, (_url, text) =>
-      ({ keep: matchTeams(text, ctx.index, 'soccer').length > 0, leagues: [], sport: 'soccer' }))
+      ({ keep: matchTeams(text, ctx.index, 'soccer', { strict: true }).length > 0, leagues: [], sport: 'soccer', strict: true }))
   }
 }

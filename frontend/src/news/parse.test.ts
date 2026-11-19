@@ -83,6 +83,32 @@ describe('parseSource', () => {
     expect(items).toHaveLength(10)
   })
 
+  it('brazilian homonyms do not tag european clubs in portuguese feeds', () => {
+    const rss = (title: string) => `<?xml version="1.0"?><rss><channel><item><title>${title}</title>
+      <link>https://ge.globo.com/ba/futebol/x.ghtml</link><pubDate>Thu, 19 Nov 2026 20:37:00 +0000</pubDate></item></channel></rss>`
+    expect(parseSource('ge', rss('Everton Ribeiro do Bahia contra o Grêmio'), ctx)).toEqual([])
+    expect(parseSource('ge', rss('Barcelona-EQU vence na Libertadores e Liverpool-URU empata'), ctx)).toEqual([])
+    expect(parseSource('ge', rss('Manchester United vence o Everton'), ctx)[0].teams).toContain('soccer:360')
+  })
+
+  it('fabrizio posts only tag soccer teams', () => {
+    const html = `<div class="tgme_widget_message_wrap"><div data-post="FabrizioRomanoTG/2">
+      <div class="tgme_widget_message_text js-message_text">Eagles and Saints in talks, Arsenal watching</div>
+      <time datetime="2026-11-19T20:00:00+00:00"></time></div>`
+    const [it] = parseSource('fabrizio_tg', html, ctx)
+    expect(it.teams.every(t => t.startsWith('soccer:'))).toBe(true)
+    expect(it.teams).toContain('soccer:359')
+  })
+
+  it('one bad item does not take the source down', () => {
+    const rss = `<?xml version="1.0"?><rss><channel>
+      <item><title>Ruim &#99999999;</title><link>https://h.com/1</link><pubDate>Thu, 19 Nov 2026 20:37:00 +0000</pubDate></item>
+      <item><title>Boa</title><link>https://h.com/2</link><pubDate>Thu, 19 Nov 2026 20:38:00 +0000</pubDate></item>
+    </channel></rss>`
+    const items = parseSource('hoops', rss, ctx)
+    expect(items.map(i => i.url)).toContain('https://h.com/2')
+  })
+
   it('sanitizes html and rejects non-http links', () => {
     const rss = (link: string) => `<?xml version="1.0"?><rss><channel><item><title>T &amp; t</title><link>${link}</link>
       <description><![CDATA[<script>alert(1)</script><b>Oi</b>]]></description><pubDate>Thu, 19 Nov 2026 20:37:00 +0000</pubDate></item></channel></rss>`
