@@ -165,3 +165,41 @@ describe('updateLeague', () => {
     expect(calls.some(u => u.includes('event=allstar'))).toBe(false)
   })
 })
+
+describe('updateLeague v2', () => {
+  const base2 = { start: '2026-11-01', today: '2026-11-03', sleep: async () => {}, now: new Date('2026-11-03T12:00:00Z') }
+
+  it('v1 file triggers full reload', async () => {
+    const games = [{ id: 'g1', day: '2026-11-01', home: '1', away: '2', state: 'post' as const }]
+    const espn = fakeEspnV2(() => games)
+    const v1 = { league: 'PL', updated_at: '', scanned_until: '2026-11-02', teams: {}, games: [] }
+    const r = await updateLeague(v1 as any, 'PL', { ...base2, fetch: espn })
+    expect(r.file.v).toBe(2)
+    expect(r.file.games.map(g => g.id)).toEqual(['g1'])
+  })
+
+  it('players file accumulates without duplicates', async () => {
+    const games = [{ id: 'g1', day: '2026-11-01', home: '1', away: '2', state: 'post' as const }]
+    const espn = fakeEspnV2(() => games)
+    let r = await updateLeague(null, 'PL', { ...base2, fetch: espn })
+    r = await updateLeague(r.file, 'PL', { ...base2, fetch: espn, players: r.players })
+    expect(r.players.v).toBe(2)
+    expect(r.players.games.map(g => g.id)).toEqual(['g1'])
+    expect(r.players.games[0].p.map(p => p.n)).toEqual(['Jogador 1'])
+  })
+})
+
+/* Igual ao fakeEspn, com um jogador no summary. */
+function fakeEspnV2(games: () => { id: string; day: string; home: string; away: string; state: 'post' }[]) {
+  const { fetch } = fakeEspn(games as any)
+  return async (url: string) => {
+    const r: any = await fetch(url)
+    if (url.includes('summary')) {
+      const g = games().find(x => url.endsWith(x.id))!
+      r.rosters = [{ homeAway: 'home', team: { id: g.home }, roster: [
+        { starter: true, athlete: { id: 'p1', displayName: 'Jogador 1' }, stats: [{ name: 'appearances', value: 1 }, { name: 'foulsCommitted', value: 2 }] },
+      ] }]
+    }
+    return r
+  }
+}

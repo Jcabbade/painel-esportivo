@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { join } from 'node:path'
 import { LEAGUES } from '../src/espn/leagues'
 import { localToday } from '../src/lib/dates'
-import type { LeagueFile, Meta } from '../src/history/types'
+import type { LeagueFile, Meta, PlayersFile } from '../src/history/types'
 import { updateLeague } from '../src/history/update'
 
 const UA = 'PainelEsportivo/1.0'
@@ -54,10 +54,14 @@ async function main() {
 
   for (const l of LEAGUES) {
     const path = join(dir, `games-${l.key}.json`)
+    const ppath = join(dir, `players-${l.key}.json`)
     const prev = readJson<LeagueFile>(path)
+    const prevPlayers = readJson<PlayersFile>(ppath)
     try {
-      const { file, done } = await updateLeague(prev, l.key, { fetch: get, today, start, maxSummaries: max, log: console.log, deadline })
+      const { file, players, done } = await updateLeague(prev, l.key,
+        { fetch: get, today, start, maxSummaries: max, log: console.log, deadline, players: prevPlayers })
       writeJson(path, file)
+      writeJson(ppath, players)
       meta.leagues[l.key] = { games: file.games.length, scanned_until: file.scanned_until, error: null, pending: !done }
       if (!done) pending++
     } catch (e) {

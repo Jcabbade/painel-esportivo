@@ -11,11 +11,15 @@ export interface GameRecord {
   hp: number[]              // por período: tempos (futebol) ou quartos (+OT); vazio se a ESPN não mandou
   ap: number[]
   st: { h: Record<string, number>; a: Record<string, number> }   // só as estatísticas que vieram
+  cb?: { h: number[]; a: number[] }   // escanteios por faixa (10), só quando a narração bate com o total
 }
 
 export interface TeamInfo { name: string; abbrev: string; logo: string | null }
 
+export const HISTORY_VERSION = 2
+
 export interface LeagueFile {
+  v?: number
   league: string
   updated_at: string
   scanned_until: string | null   // último dia ESPN (YYYY-MM-DD) inteiramente processado
@@ -23,6 +27,14 @@ export interface LeagueFile {
   games: GameRecord[]            // ordenados por date
   /** Jogos cujo summary falhou: id → nº de execuções seguidas com falha (3 = deixado de lado). */
   failures?: Record<string, number>
+}
+
+export interface PlayerLine { id: string; n: string; t: string; s: boolean; st: Record<string, number> }
+
+export interface PlayersFile {
+  league: string
+  v: number
+  games: { id: string; date: string; season: number; p: PlayerLine[] }[]
 }
 
 export interface Meta {

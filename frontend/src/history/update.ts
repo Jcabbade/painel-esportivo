@@ -4,8 +4,9 @@ import { ESPN_SITE, ESPN_STANDINGS, type Fetcher } from '../espn/client'
 import { league as leagueOf } from '../espn/leagues'
 import { parseScoreboard } from '../espn/parse'
 import { addDays } from '../lib/dates'
+import { toPlayers } from './players'
 import { toRecord } from './record'
-import type { GameRecord, LeagueFile } from './types'
+import { HISTORY_VERSION, type GameRecord, type LeagueFile, type PlayersFile } from './types'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -24,6 +25,8 @@ export interface UpdateOpts {
   sleep?: (ms: number) => Promise<void>
   /** Horário-limite (ms desde 1970): ao passar, para como no limite de buscas e devolve done: false. */
   deadline?: number
+  /** Arquivo de jogadores anterior (players-<LIGA>.json). */
+  players?: PlayersFile | null
 }
 
 const realSleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
@@ -39,9 +42,13 @@ function teamIds(payload: any): Set<string> {
   return ids
 }
 
-export async function updateLeague(file: LeagueFile | null, leagueKey: string, opts: UpdateOpts):
-  Promise<{ file: LeagueFile; done: boolean; added: number }> {
+export async function updateLeague(fileIn: LeagueFile | null, leagueKey: string, opts: UpdateOpts):
+  Promise<{ file: LeagueFile; players: PlayersFile; done: boolean; added: number }> {
   const lg = leagueOf(leagueKey)
+  // Histórico de versão antiga: recarrega do zero (jogadores e escanteios por faixa precisam de todos os summaries).
+  const file = fileIn?.v === HISTORY_VERSION ? fileIn : null
+  const playersIn = file && opts.players?.v === HISTORY_VERSION ? opts.players : null
+  const playerGames = new Map((playersIn?.games ?? []).map(g => [g.id, g]))
   const sleep = opts.sleep ?? realSleep
   const max = opts.maxSummaries ?? 3000
   const log = opts.log ?? (() => {})
@@ -74,10 +81,13 @@ export async function updateLeague(file: LeagueFile | null, leagueKey: string, o
       if (fetched >= max || late()) { capped = true; complete = false; break }
       fetched++
       try {
-        const r = toRecord(g, await get(`${ESPN_SITE}/${lg.path}/summary?event=${g.id}`))
+        const summary = await get(`${ESPN_SITE}/${lg.path}/summary?event=${g.id}`)
+        const r = toRecord(g, summary)
         delete failures[g.id]
         if (r) {
           games.set(r.record.id, r.record)
+          const p = toPlayers(g, summary)
+          if (p.length) playerGames.set(r.record.id, { id: r.record.id, date: r.record.date, season: r.record.season, p })
           Object.assign(teams, r.teams)
           added++
         }
@@ -95,9 +105,14 @@ export async function updateLeague(file: LeagueFile | null, leagueKey: string, o
 
   const sorted = [...games.values()].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
   log(`${lg.key}: +${added} jogos (total ${sorted.length}), varrido até ${scanned ?? '-'}${capped ? ' — continua na próxima execução' : ''}`)
+  const players: PlayersFile = {
+    league: lg.key, v: HISTORY_VERSION,
+    games: [...playerGames.values()].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
+  }
   return {
+    players,
     file: {
-      league: lg.key, updated_at: (opts.now ?? new Date()).toISOString(), scanned_until: scanned,
+      v: HISTORY_VERSION, league: lg.key, updated_at: (opts.now ?? new Date()).toISOString(), scanned_until: scanned,
       teams, games: sorted, failures,
     },
     done: !capped,

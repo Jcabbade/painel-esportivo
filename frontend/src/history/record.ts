@@ -1,5 +1,6 @@
 /* Ficha compacta de um jogo encerrado, a partir do summary da ESPN. Só números que a ESPN mandou. */
 import type { Game, Sport } from '../types'
+import { cornerBuckets } from './players'
 import type { GameRecord, LeagueFile } from './types'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -71,11 +72,13 @@ export function toRecord(game: Game, summary: unknown): { record: GameRecord; te
     logo: c.team?.logos?.[0]?.href ?? c.team?.logo ?? null,
   })
 
+  const cb = game.sport === 'soccer'
+    ? cornerBuckets(p, home.team?.displayName ?? '', away.team?.displayName ?? '') : null
   return {
     record: {
       id: String(game.id), date: isoUtc(comp?.date, game.start_utc), season: year,
       h: game.home.team_id, a: game.away.team_id, hs, as,
-      hp: periods(home), ap: periods(away), st,
+      hp: periods(home), ap: periods(away), st, ...(cb ? { cb } : {}),
     },
     teams: { [game.home.team_id]: team(home), [game.away.team_id]: team(away) },
   }
