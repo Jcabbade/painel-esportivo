@@ -113,3 +113,16 @@ O usuário quer abrir o painel no celular sem depender do notebook ligado. O pai
 - Instalável na tela inicial do celular (manifesto web com ícone e nome).
 - **Backend Python:** deixa de ser necessário para a tela. Passa a ser a base do job diário de histórico/rankings do Plano 3 (rodando no GitHub Actions). O servidor local e a tarefa de inicialização podem ser desligados quando o site estiver no ar (decisão do usuário).
 - Anti-objetivos continuam valendo: nada estimado, aviso quando uma liga falha ou o dado está velho.
+
+## 9. Revisão (2026-11-19): histórico e rankings (Plano 3), aprovada pelo usuário
+
+**Fatos da fonte (conferidos):** o `summary` da ESPN traz estatísticas de time, gols por tempo (futebol) e pontos por quarto (NBA/NFL) para jogos de pelo menos 2 temporadas atrás nas 7 ligas; o scoreboard não traz cartões, impedimentos nem tempos, então o histórico precisa do `summary` de cada jogo encerrado (uma vez por jogo). `header.season.year` identifica a temporada; NBA/NFL `season.type` 1 = pré-temporada.
+
+**Como:**
+- **Robô diário** (GitHub Actions, 09:00 de Brasília + disparo manual): busca os jogos encerrados desde a última execução, grava uma ficha por jogo e republica o site. Carga inicial: temporada atual e anterior das 7 ligas (~8 mil jogos), retomável em várias execuções se passar do limite.
+- **Escrito em TypeScript**, reaproveitando o leitor da ESPN do site (decisão do Claude; o backend Python fica parado no repositório).
+- **Histórico num ramo `data`** do repositório (JSON por liga), copiado para o site em cada publicação.
+- **Rankings calculados no navegador** a partir das fichas, com qualquer combinação de filtros; sempre mostram nº de jogos e "dados até DD/MM HH:MM".
+- Rankings só comparam ligas do mesmo esporte; "Todas" nos rankings de times = todas as ligas de futebol cobertas.
+- Pontos por tempo na NBA/NFL = soma dos quartos (1º tempo = Q1+Q2; 2º tempo = Q3+Q4, sem prorrogação); jogo todo inclui prorrogação.
+- Se o robô parar (o GitHub pausa agendamentos após 60 dias sem atividade em repositório público), o painel mostra a data dos dados bem visível.
