@@ -1,7 +1,7 @@
 /* Interpreta o summary da ESPN (detalhe de um jogo). Só reorganiza o que veio; nada é calculado. */
 import type { Game, Sport } from '../types'
 import type {
-  Aggregate, GameDetail, H2H, Lineup, LineupPlayer, SoccerEvent, SoccerEventKind, StatRow,
+  Aggregate, BoxGroup, BoxPlayer, GameDetail, H2H, Lineup, LineupPlayer, SoccerEvent, SoccerEventKind, StatRow,
 } from './detailTypes'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -15,9 +15,28 @@ const STAT_LABELS: Record<Sport, [string, string][]> = {
     ['totalPasses', 'Passes'], ['accuratePasses', 'Passes certos'], ['totalTackles', 'Desarmes'],
     ['interceptions', 'Interceptações'],
   ],
-  basketball: [],
-  football: [],
+  basketball: [
+    ['fieldGoalsMade-fieldGoalsAttempted', 'Arremessos'],
+    ['threePointFieldGoalsMade-threePointFieldGoalsAttempted', 'Bolas de 3'],
+    ['freeThrowsMade-freeThrowsAttempted', 'Lances livres'], ['totalRebounds', 'Rebotes'],
+    ['offensiveRebounds', 'Rebotes ofensivos'], ['assists', 'Assistências'], ['steals', 'Roubos'],
+    ['blocks', 'Tocos'], ['turnovers', 'Erros (turnovers)'], ['fouls', 'Faltas'],
+    ['pointsInPaint', 'Pontos no garrafão'], ['fastBreakPoints', 'Contra-ataque'], ['largestLead', 'Maior vantagem'],
+  ],
+  football: [
+    ['firstDowns', 'First downs'], ['totalYards', 'Jardas totais'], ['netPassingYards', 'Jardas de passe'],
+    ['rushingYards', 'Jardas corridas'], ['thirdDownEff', '3ª descida'], ['fourthDownEff', '4ª descida'],
+    ['redZoneAttempts', 'Red zone'], ['turnovers', 'Turnovers'], ['totalPenaltiesYards', 'Faltas (jardas)'],
+    ['sacksYardsLost', 'Sacks'], ['possessionTime', 'Posse de bola'],
+  ],
 }
+
+/** Grupos do box score da NFL, na ordem mostrada. */
+const NFL_GROUPS: [string, string][] = [
+  ['passing', 'Passe'], ['rushing', 'Corrida'], ['receiving', 'Recepção'], ['defensive', 'Defesa'],
+  ['interceptions', 'Interceptações'], ['kicking', 'Chutes'], ['punting', 'Punts'],
+  ['kickReturns', 'Retorno de kickoff'], ['puntReturns', 'Retorno de punt'], ['fumbles', 'Fumbles'],
+]
 
 const EVENT_KINDS: Record<string, SoccerEventKind> = {
   'goal': 'goal',
@@ -135,6 +154,59 @@ function parseH2H(payload: any): H2H | null {
   return games.length ? { summary: s.summary ?? null, games } : null
 }
 
+function periodLabel(i: number): string {
+  if (i < 4) return `${i + 1}º`
+  return i === 4 ? 'OT' : `${i - 3}OT`
+}
+
+function parsePeriods(game: Game, payload: any): GameDetail['periods'] {
+  const comp = payload?.header?.competitions?.[0]
+  const res: Partial<Record<SideKey, string[]>> = {}
+  for (const c of comp?.competitors ?? []) {
+    const s: SideKey | null = c?.homeAway === 'home' || c?.homeAway === 'away' ? c.homeAway : null
+    if (s) res[s] = (c.linescores ?? []).map((l: any) => String(l?.displayValue ?? l?.value ?? ''))
+  }
+  const { home, away } = res
+  if (!home?.length || !away?.length || home.length !== away.length) return null
+  return { labels: home.map((_, i) => periodLabel(i)), home, away }
+}
+
+function parseGroup(g: any, title: string): BoxGroup | null {
+  const players: BoxPlayer[] = []
+  for (const a of g?.athletes ?? []) {
+    const name = a?.athlete?.displayName
+    if (!name) continue
+    const dnp = a.didNotPlay ? (a.reason || 'Não jogou') : null
+    players.push({ name, starter: !!a.starter, stats: dnp ? [] : (a.stats ?? []).map(String), dnp })
+  }
+  return players.length ? { title, labels: (g.labels ?? []).map(String), players } : null
+}
+
+function parseBox(game: Game, payload: any): GameDetail['box'] {
+  const res: Partial<Record<SideKey, BoxGroup[]>> = {}
+  for (const t of payload?.boxscore?.players ?? []) {
+    const s = sideOf(game, t?.team?.id)
+    if (!s) continue
+    const groups: BoxGroup[] = []
+    const stats: any[] = t.statistics ?? []
+    if (game.sport === 'football') {
+      for (const [name, title] of NFL_GROUPS) {
+        const g = parseGroup(stats.find(x => x?.name === name), title)
+        if (g) groups.push(g)
+      }
+    } else {
+      for (const st of stats) {
+        const g = parseGroup(st, 'Jogadores')
+        if (g) groups.push(g)
+      }
+    }
+    res[s] = groups
+  }
+  const { home, away } = res
+  if (!home?.length && !away?.length) return null
+  return { home: home ?? [], away: away ?? [] }
+}
+
 const LEGS: Record<string, string> = { '1st Leg': '1º jogo', '2nd Leg': '2º jogo' }
 
 function parseAggregate(payload: any): Aggregate | null {
@@ -154,8 +226,8 @@ export function parseSummary(game: Game, payload: unknown): GameDetail {
     stats: parseStats(game, p),
     events: game.sport === 'soccer' ? parseEvents(game, p) : [],
     lineups: game.sport === 'soccer' ? parseLineups(game, p) : null,
-    periods: null,
-    box: null,
+    periods: game.sport === 'soccer' ? null : parsePeriods(game, p),
+    box: game.sport === 'soccer' ? null : parseBox(game, p),
     h2h: parseH2H(p),
     aggregate: parseAggregate(p),
     attendance: attendance && attendance > 0 ? attendance : null,
