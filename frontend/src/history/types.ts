@@ -21,6 +21,8 @@ export interface LeagueFile {
   scanned_until: string | null   // último dia ESPN (YYYY-MM-DD) inteiramente processado
   teams: Record<string, TeamInfo>
   games: GameRecord[]            // ordenados por date
+  /** Jogos cujo summary falhou: id → nº de execuções seguidas com falha (3 = deixado de lado). */
+  failures?: Record<string, number>
 }
 
 export interface Meta {

@@ -135,6 +135,24 @@ describe('updateLeague', () => {
     expect(r2.file.games.map(g => g.id)).toEqual(['g1'])
   })
 
+  it('a game that keeps failing is given up after 3 runs', async () => {
+    const games: FakeGame[] = [
+      { id: 'a', day: '2026-11-01', home: '1', away: '2', state: 'post' },
+      { id: 'quebrado', day: '2026-11-02', home: '3', away: '4', state: 'post' },
+    ]
+    const bad = fakeEspn(() => games, { failSummary: new Set(['quebrado']) })
+    let r = await updateLeague(null, 'PL', { ...base, fetch: bad.fetch })
+    expect(r.file.scanned_until).toBe('2026-11-01')
+    r = await updateLeague(r.file, 'PL', { ...base, fetch: bad.fetch })
+    expect(r.file.scanned_until).toBe('2026-11-01')
+    r = await updateLeague(r.file, 'PL', { ...base, fetch: bad.fetch })
+    expect(r.file.scanned_until).toBe('2026-11-03')          // 3ª falha: deixa o jogo de lado
+    expect(r.file.games.map(g => g.id)).toEqual(['a'])       // nada inventado no lugar
+    const good = fakeEspn(() => games)
+    r = await updateLeague(r.file, 'PL', { ...base, fetch: good.fetch })
+    expect(r.file.games.map(g => g.id)).toEqual(['a', 'quebrado'])   // se voltar a responder na janela, entra
+  })
+
   it('nba drops teams outside standings', async () => {
     const games: FakeGame[] = [
       { id: 'ok', day: '2026-11-01', home: '1', away: '2', state: 'post' },

@@ -11,6 +11,8 @@ import type { GameRecord, LeagueFile } from './types'
 
 export const DEFAULT_START = '2025-07-01'
 export const RESCAN_DAYS = 3
+/** Depois de tantas execuções com falha no summary, o jogo deixa de travar a varredura (fica fora das contas). */
+export const GIVE_UP_AFTER = 3
 
 export interface UpdateOpts {
   fetch: Fetcher
@@ -47,6 +49,7 @@ export async function updateLeague(file: LeagueFile | null, leagueKey: string, o
 
   const games = new Map<string, GameRecord>((file?.games ?? []).map(g => [g.id, g]))
   const teams = { ...(file?.teams ?? {}) }
+  const failures: Record<string, number> = { ...(file?.failures ?? {}) }
   const start = opts.start ?? DEFAULT_START
   const last = addDays(opts.today, -1)
   let day = file?.scanned_until ? addDays(file.scanned_until, -RESCAN_DAYS) : start
@@ -72,14 +75,18 @@ export async function updateLeague(file: LeagueFile | null, leagueKey: string, o
       fetched++
       try {
         const r = toRecord(g, await get(`${ESPN_SITE}/${lg.path}/summary?event=${g.id}`))
+        delete failures[g.id]
         if (r) {
           games.set(r.record.id, r.record)
           Object.assign(teams, r.teams)
           added++
         }
       } catch (e) {
-        complete = false
-        log(`${lg.key} ${day} jogo ${g.id}: ${(e as Error).message}`)
+        const n = (failures[g.id] ?? 0) + 1
+        failures[g.id] = n
+        // Falha passageira: o dia fica para a próxima execução. Falha repetida: segue sem o jogo (nada estimado).
+        if (n < GIVE_UP_AFTER) complete = false
+        log(`${lg.key} ${day} jogo ${g.id}: ${(e as Error).message}${n >= GIVE_UP_AFTER ? ' — deixado de lado' : ` (tentativa ${n})`}`)
       }
     }
     if (!complete) blocked = true
@@ -91,7 +98,7 @@ export async function updateLeague(file: LeagueFile | null, leagueKey: string, o
   return {
     file: {
       league: lg.key, updated_at: (opts.now ?? new Date()).toISOString(), scanned_until: scanned,
-      teams, games: sorted,
+      teams, games: sorted, failures,
     },
     done: !capped,
     added,
