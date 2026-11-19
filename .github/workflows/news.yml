@@ -4,7 +4,7 @@ name: Notícias
 # O ramo guarda só a versão mais recente (commit único, sobrescrito), para não crescer.
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '7,37 * * * *'   # fora dos minutos redondos, mais disputados no GitHub
   workflow_dispatch:
 
 permissions:
