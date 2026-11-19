@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { getGames, getLeagues, setFavorite } from './api'
 import { DayBar } from './components/DayBar'
 import { DetailPane } from './components/DetailPane'
 import { GameList } from './components/GameList'
@@ -7,7 +6,10 @@ import { StaleBanner } from './components/StaleBanner'
 import { Toolbar } from './components/Toolbar'
 import { followToday, localToday } from './lib/dates'
 import { countLive, filterGames, formatLocalTime, groupGames, needsFastPoll, type GroupMode, type Tab } from './lib/games'
-import type { Game, GamesResponse, League, Side } from './types'
+import { LEAGUES } from './espn/leagues'
+import { loadDay, refreshLive, withFavorites } from './espn/loadDay'
+import { toggleFavorite } from './espn/store'
+import type { Game, GamesResponse, Side } from './types'
 
 const LIVE_POLL = 30_000
 const IDLE_POLL = 300_000
@@ -27,18 +29,17 @@ export default function App() {
   const [selLeagues, setSelLeagues] = useState<Set<string>>(new Set())
   const [group, setGroup] = useState<GroupMode>((readPref('painel.group') as GroupMode) || 'liga')
   const [theme, setTheme] = useState(readPref('painel.theme') || 'dark')
-  const [leagues, setLeagues] = useState<League[]>([])
   const [data, setData] = useState<GamesResponse | null>(null)
   const [offline, setOffline] = useState(false)
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const leagueNames = useMemo(() => Object.fromEntries(leagues.map(l => [l.key, l.name])), [leagues])
-  const leagueOrder = useMemo(() => leagues.map(l => l.key), [leagues])
+  const leagues = LEAGUES
+  const leagueNames = useMemo(() => Object.fromEntries(LEAGUES.map(l => [l.key, l.name])), [])
+  const leagueOrder = useMemo(() => LEAGUES.map(l => l.key), [])
 
   useEffect(() => { document.documentElement.dataset.theme = theme; writePref('painel.theme', theme) }, [theme])
   useEffect(() => { writePref('painel.group', group) }, [group])
-  useEffect(() => { getLeagues().then(setLeagues).catch(() => setOffline(true)) }, [])
   useEffect(() => {
     const t = setInterval(() => {
       const next = localToday()
@@ -50,17 +51,25 @@ export default function App() {
     return () => clearInterval(t)
   }, [])
 
+  const apply = useCallback((r: GamesResponse) => {
+    // Todas as ligas falharam: provavelmente sem internet. Mantém o que já estava na tela.
+    const allFailed = r.errors.length === LEAGUES.length
+    setOffline(allFailed)
+    setData(prev => (allFailed && prev?.date === r.date ? { ...prev, stale: true, errors: r.errors } : r))
+  }, [])
+
   const load = useCallback(async () => {
     try {
-      const r = await getGames(day)
-      setData(r)
-      setOffline(false)
-    } catch {
-      setOffline(true)
+      apply(await loadDay(day))
     } finally {
       setLoading(false)
     }
-  }, [day])
+  }, [day, apply])
+
+  const loadLive = useCallback(async () => {
+    if (data?.date !== day) return load()
+    apply(await refreshLive(data))
+  }, [data, day, load, apply])
 
   useEffect(() => { setLoading(true); setData(null); setSelectedId(null); load() }, [load])
 
@@ -68,9 +77,9 @@ export default function App() {
   const live = countLive(games)
   const fast = needsFastPoll(games)
   useEffect(() => {
-    const t = setInterval(load, fast ? LIVE_POLL : IDLE_POLL)
+    const t = setInterval(fast ? loadLive : load, fast ? LIVE_POLL : IDLE_POLL)
     return () => clearInterval(t)
-  }, [load, fast])
+  }, [load, loadLive, fast])
 
   const visible = filterGames(games, { tab, leagues: selLeagues, query }, leagueNames)
   const groups = groupGames(visible, group, leagueOrder, leagueNames)
@@ -82,18 +91,9 @@ export default function App() {
     return n
   })
 
-  const onFavorite = async (g: Game, side: Side) => {
-    const on = !side.favorite
-    setData(d => d && {
-      ...d,
-      games: d.games.map(x => x.sport !== g.sport ? x : {
-        ...x,
-        home: x.home.team_id === side.team_id ? { ...x.home, favorite: on } : x.home,
-        away: x.away.team_id === side.team_id ? { ...x.away, favorite: on } : x.away,
-      }),
-    })
-    try { await setFavorite(g.sport, side.team_id, on) } catch { setOffline(true) }
-    load()
+  const onFavorite = (g: Game, side: Side) => {
+    toggleFavorite(g.sport, side.team_id)
+    setData(d => d && withFavorites(d))
   }
 
   const emptyText = loading ? 'Carregando…'

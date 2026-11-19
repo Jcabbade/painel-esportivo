@@ -10,15 +10,15 @@ export async function fetchJson(url: string, timeoutMs = 15000): Promise<unknown
   let r: Response
   try {
     r = await fetch(url, { signal: ctrl.signal })
-  } catch (e) {
-    throw new Error(ctrl.signal.aborted ? 'ESPN não respondeu a tempo' : 'sem conexão com a ESPN', { cause: e })
+  } catch {
+    throw new Error(ctrl.signal.aborted ? 'ESPN não respondeu a tempo' : 'sem conexão com a ESPN')
   } finally {
     clearTimeout(timer)
   }
   if (!r.ok) throw new Error(`ESPN respondeu ${r.status}`)
   try {
     return await r.json()
-  } catch (e) {
-    throw new Error('resposta inválida da ESPN', { cause: e })
+  } catch {
+    throw new Error('resposta inválida da ESPN')
   }
 }

@@ -14,7 +14,7 @@ export interface LoadOpts {
 }
 
 const iso = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, 'Z')
-const compact = (day: string) => day.replaceAll('-', '')
+const compact = (day: string) => day.split('-').join('')
 
 async function ranksFor(lg: EspnLeague, get: Fetcher, now: Date): Promise<Record<string, number>> {
   if (lg.sport !== 'soccer') return {}

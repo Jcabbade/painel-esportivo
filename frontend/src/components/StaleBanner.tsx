@@ -9,7 +9,7 @@ interface Props {
 
 export function StaleBanner({ offline, stale, errors, leagueNames }: Props) {
   if (offline) {
-    return <div className="banner err">Sem conexão com o servidor do painel. Mostrando a última lista carregada.</div>
+    return <div className="banner err">Sem conexão com a internet (ESPN não respondeu). Tentando de novo em instantes.</div>
   }
   if (!stale) return null
   const names = errors.map(e => leagueNames[e.league] ?? e.league)
