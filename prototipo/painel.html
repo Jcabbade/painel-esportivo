@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel Esportivo</title>
+<style>
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --surface2:#eef1f5; --border:#dde2ea;
+  --text:#14181f; --muted:#5d6878; --accent:#0a7c4a; --accent-soft:#e2f4ea;
+  --live:#d42a2a; --live-soft:#fde8e8; --odd:#f6f8fb; --odd-hover:#e4ecf7;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1116; --surface:#161b22; --surface2:#1d242e; --border:#2a333f;
+    --text:#e8ecf2; --muted:#8c97a8; --accent:#3ddc84; --accent-soft:#163a27;
+    --live:#ff5a5a; --live-soft:#3a1717; --odd:#1d242e; --odd-hover:#263142;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1116; --surface:#161b22; --surface2:#1d242e; --border:#2a333f;
+  --text:#e8ecf2; --muted:#8c97a8; --accent:#3ddc84; --accent-soft:#163a27;
+  --live:#ff5a5a; --live-soft:#3a1717; --odd:#1d242e; --odd-hover:#263142;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--border)}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+.top{display:flex;align-items:center;gap:16px;height:56px}
+.brand{font-weight:800;font-size:18px;letter-spacing:-.3px}
+.brand span{color:var(--accent)}
+.tabs{display:flex;gap:4px;margin-left:auto}
+.tab{border:0;background:none;color:var(--muted);padding:8px 14px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+.tab.on{background:var(--accent-soft);color:var(--accent)}
+.theme{border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:10px 0 12px;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--border);background:var(--surface);color:var(--muted);padding:6px 12px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer}
+.chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+main{padding:16px 0 90px}
+.demo{background:var(--surface2);border:1px dashed var(--border);color:var(--muted);border-radius:10px;padding:8px 12px;font-size:12.5px;margin-bottom:16px}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--live);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.day{font-size:15px;font-weight:700;margin:24px 0 8px;color:var(--text);text-transform:none;letter-spacing:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+@media (max-width:420px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.card.live{border-color:color-mix(in srgb,var(--live) 45%,var(--border))}
+.meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:8px}
+.lg{font-weight:600}
+.status{margin-left:auto;font-weight:700}
+.status.live{color:var(--live);background:var(--live-soft);padding:2px 8px;border-radius:6px}
+.team{display:flex;align-items:center;gap:10px;padding:3px 0}
+.badge{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;flex:none}
+.name{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;min-width:30px;text-align:right}
+.score.flash{animation:flash 1.2s}
+@keyframes flash{0%{color:var(--accent);transform:scale(1.25)}100%{transform:none}}
+.lead .name,.lead .score{color:var(--text)}
+.trail .name,.trail .score{color:var(--muted)}
+.odds{margin-top:10px;display:grid;gap:6px}
+.mk{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:8px}
+.mk-l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.mk-v{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.o{background:var(--odd);border-radius:7px;padding:5px 6px;text-align:center;font-variant-numeric:tabular-nums;cursor:default;transition:background .15s}
+.o:hover{background:var(--odd-hover)}
+.o small{display:block;font-size:10px;color:var(--muted);line-height:1.1}
+.o b{font-size:13.5px}
+.o.up b{color:var(--accent)} .o.down b{color:var(--live)}
+.empty{color:var(--muted);padding:30px;text-align:center}
+footer{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border)}
+.foot{display:flex;align-items:center;gap:12px;height:52px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.cred{display:flex;align-items:center;gap:8px;margin-left:auto}
+.bar{width:90px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.btn{border:0;background:var(--accent);color:#fff;font:inherit;font-weight:700;padding:7px 12px;border-radius:8px;cursor:pointer}
+:root[data-theme="dark"] .btn{color:#0e1116}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#0e1116}}
+@media (max-width:560px){.src{display:none}.top{gap:8px}.brand{font-size:16px}.tab{padding:8px 10px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">Painel<span>.</span>esportivo</div>
+      <nav class="tabs">
+        <button class="tab on" data-view="hoje">Hoje</button>
+        <button class="tab" data-view="agenda">Agenda</button>
+      </nav>
+      <button class="theme" id="theme" title="Alternar tema">◐</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+
+<script>
+const LEAGUES = {
+  NFL:{n:'NFL',e:'🏈',s:'us'}, NBA:{n:'NBA',e:'🏀',s:'us'},
+  PL:{n:'Premier League',e:'⚽',s:'fut'}, UCL:{n:'Champions',e:'⚽',s:'fut'},
+  ESP:{n:'La Liga',e:'⚽',s:'fut'}, ITA:{n:'Serie A',e:'⚽',s:'fut'}, ALE:{n:'Bundesliga',e:'⚽',s:'fut'}
+};
+const C = ['#c8102e','#034694','#552583','#007a33','#e31837','#00338d','#fdb927','#1d428a','#a50044','#004170','#dc052d','#0068a8','#000000','#6cabdd','#ef0107','#fb4f14'];
+const col = s => C[[...s].reduce((a,c)=>a+c.charCodeAt(0),0)%C.length];
+const ab = s => s.split(' ').map(w=>w[0]).join('').slice(0,3).toUpperCase();
+
+// dados fictícios: dia 0 = hoje (qui 19/11)
+let GAMES = [
+  {id:1,lg:'NBA',d:0,h:'Lakers',a:'Celtics',st:'live',clock:'3º Q · 4:12',hs:88,as:91,o:{ml:[2.10,1.76],sp:['+2.5',1.91,'-2.5',1.91],tot:['224.5',1.87,1.95]}},
+  {id:2,lg:'PL',d:0,h:'Arsenal',a:'Chelsea',st:'live',clock:"67'",hs:1,as:0,o:{x12:[1.45,4.20,7.50],sp:['-1.5',2.60,'+1.5',1.52],tot:['2.5',2.05,1.80]}},
+  {id:3,lg:'ITA',d:0,h:'Inter',a:'Juventus',st:'live',clock:"Intervalo",hs:0,as:0,o:{x12:[2.15,3.30,3.60],sp:['-0.5',2.15,'+0.5',1.74],tot:['2.5',2.30,1.65]}},
+  {id:4,lg:'NBA',d:0,h:'Warriors',a:'Nuggets',st:'fim',clock:'Final',hs:112,as:118,o:{ml:[1.95,1.89],sp:['+1',1.90,'-1',1.92],tot:['229.5',1.91,1.91]}},
+  {id:5,lg:'NFL',d:0,t:'22:15',h:'Kansas City Chiefs',a:'Buffalo Bills',st:'pre',o:{ml:[1.80,2.05],sp:['-1.5',1.93,'+1.5',1.89],tot:['47.5',1.90,1.92]}},
+  {id:6,lg:'NBA',d:0,t:'21:30',h:'Knicks',a:'Heat',st:'pre',o:{ml:[1.55,2.50],sp:['-5.5',1.91,'+5.5',1.91],tot:['216.5',1.89,1.93]}},
+  {id:7,lg:'NBA',d:0,t:'23:00',h:'Mavericks',a:'Suns',st:'pre',o:{ml:[1.70,2.18],sp:['-3',1.92,'+3',1.90],tot:['231',1.88,1.94]}},
+  {id:8,lg:'ESP',d:2,t:'17:00',h:'Real Madrid',a:'Atletico Madrid',o:{x12:[1.85,3.70,4.40],sp:['-0.5',1.85,'+0.5',2.00],tot:['2.5',1.83,2.02]}},
+  {id:9,lg:'ALE',d:2,t:'11:30',h:'Bayern Munique',a:'Borussia Dortmund',o:{x12:[1.50,4.75,5.80],sp:['-1.5',2.05,'+1.5',1.80],tot:['3.5',1.95,1.88]}},
+  {id:10,lg:'PL',d:2,t:'14:30',h:'Manchester City',a:'Liverpool',o:{x12:[2.05,3.75,3.40],sp:['-0.5',2.05,'+0.5',1.80],tot:['2.5',1.62,2.35]}},
+  {id:11,lg:'ITA',d:3,t:'16:45',h:'Milan',a:'Napoli',o:{x12:[2.40,3.25,3.05],sp:['0',1.75,'0',2.10],tot:['2.5',2.00,1.85]}},
+  {id:12,lg:'NFL',d:3,t:'15:00',h:'Philadelphia Eagles',a:'Dallas Cowboys',o:{ml:[1.45,2.85],sp:['-6.5',1.92,'+6.5',1.90],tot:['45.5',1.91,1.91]}},
+  {id:13,lg:'NFL',d:3,t:'22:20',h:'Detroit Lions',a:'Green Bay Packers',o:{ml:[1.62,2.38],sp:['-3.5',1.95,'+3.5',1.87],tot:['50.5',1.89,1.93]}},
+  {id:14,lg:'ESP',d:3,t:'17:00',h:'Barcelona',a:'Sevilla',o:{x12:[1.30,5.80,9.00],sp:['-1.5',1.75,'+1.5',2.10],tot:['3.5',2.10,1.75]}},
+  {id:15,lg:'UCL',d:5,t:'17:00',h:'Real Madrid',a:'Bayern Munique',o:{x12:[2.30,3.60,2.90],sp:['0',1.95,'0',1.90],tot:['2.5',1.70,2.20]}},
+  {id:16,lg:'UCL',d:5,t:'17:00',h:'PSG',a:'Arsenal',o:{x12:[2.45,3.45,2.80],sp:['0',2.00,'0',1.85],tot:['2.5',1.80,2.05]}},
+  {id:17,lg:'UCL',d:6,t:'17:00',h:'Inter',a:'Manchester City',o:{x12:[3.10,3.40,2.30],sp:['0',2.30,'0',1.65],tot:['2.5',1.95,1.88]}},
+  {id:18,lg:'NBA',d:1,t:'21:00',h:'Celtics',a:'Bucks',o:{ml:[1.50,2.65],sp:['-6',1.90,'+6',1.92],tot:['225.5',1.91,1.91]}},
+];
+
+let view='hoje', filter='TODOS';
+const BASE = new Date(2026,10,19);
+const dayName = d => { if(d===0) return 'Hoje'; if(d===1) return 'Amanhã';
+  const x=new Date(BASE); x.setDate(x.getDate()+d);
+  return x.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}).replace(/^./,c=>c.toUpperCase()); };
+
+function chips(){
+  const el=document.getElementById('chips');
+  const keys=['TODOS',...Object.keys(LEAGUES)];
+  el.innerHTML=keys.map(k=>`<button class="chip ${k===filter?'on':''}" data-k="${k}">${k==='TODOS'?'Todos':LEAGUES[k].e+' '+LEAGUES[k].n}</button>`).join('');
+  el.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{filter=b.dataset.k;chips();render();});
+}
+
+function odd(lbl,v,cls=''){return `<div class="o ${cls}"><small>${lbl}</small><b>${typeof v==='number'?v.toFixed(2):v}</b></div>`}
+function oddsBlock(g){
+  const o=g.o, fut=LEAGUES[g.lg].s==='fut', s=(i)=>g._mv&&g._mv[i]?g._mv[i]:'';
+  let r='';
+  if(fut) r+=`<div class="mk"><span class="mk-l">Resultado</span><div class="mk-v">${odd('1',o.x12[0],s(0))}${odd('X',o.x12[1],s(1))}${odd('2',o.x12[2],s(2))}</div></div>`;
+  else r+=`<div class="mk"><span class="mk-l">Vencedor</span><div class="mk-v">${odd(ab(g.h),o.ml[0],s(0))}${odd(ab(g.a),o.ml[1],s(1))}</div></div>`;
+  r+=`<div class="mk"><span class="mk-l">${fut?'Handicap':'Spread'}</span><div class="mk-v">${odd(ab(g.h)+' '+o.sp[0],o.sp[1])}${odd(ab(g.a)+' '+o.sp[2],o.sp[3])}</div></div>`;
+  r+=`<div class="mk"><span class="mk-l">Total</span><div class="mk-v">${odd('Mais '+o.tot[0],o.tot[1])}${odd('Menos '+o.tot[0],o.tot[2])}</div></div>`;
+  return `<div class="odds">${g.st==='fim'?'':r}</div>`;
+}
+function card(g){
+  const L=LEAGUES[g.lg], live=g.st==='live', fim=g.st==='fim', hasScore=live||fim;
+  const hl=hasScore&&g.hs>g.as, al=hasScore&&g.as>g.hs;
+  const status= live?`<span class="status live">● ${g.clock}</span>`: fim?`<span class="status">Encerrado</span>`:`<span class="status">${g.t}</span>`;
+  const row=(n,sc,lead,k)=>`<div class="team ${hasScore?(lead?'lead':'trail'):''}"><span class="badge" style="background:${col(n)}">${ab(n)}</span><span class="name">${n}</span>${hasScore?`<span class="score" id="s${g.id}${k}">${sc}</span>`:''}</div>`;
+  return `<div class="card ${live?'live':''}"><div class="meta"><span>${L.e}</span><span class="lg">${L.n}</span>${status}</div>
+    ${row(g.h,g.hs,hl||(!al&&hasScore),'h')}${row(g.a,g.as,al||(!hl&&hasScore),'a')}</div>`;
+}
+const vis = g => filter==='TODOS'||g.lg===filter;
+const byTime=(a,b)=>(a.t||'').localeCompare(b.t||'');
+
+function render(){
+  const m=document.getElementById('main');
+  let h='<div class="demo">Protótipo com dados fictícios: os placares mudam sozinhos para simular o ao vivo. Na versão real, os dados vêm da ESPN.</div>';
+  if(view==='hoje'){
+    const g=GAMES.filter(x=>x.d===0&&vis(x));
+    const sec=(t,list,dot)=>list.length?`<h2>${dot?'<span class="dot"></span>':''}${t}</h2><div class="grid">${list.map(card).join('')}</div>`:'';
+    h+=sec('Ao vivo',g.filter(x=>x.st==='live'),true)+sec('Mais tarde',g.filter(x=>x.st==='pre').sort(byTime))+sec('Encerrados',g.filter(x=>x.st==='fim'));
+    if(!g.length) h+='<div class="empty">Nenhum jogo hoje nesse filtro.<br>Veja a aba Agenda.</div>';
+  } else {
+    let any=false;
+    for(let d=1;d<=7;d++){
+      const g=GAMES.filter(x=>x.d===d&&vis(x)).sort(byTime);
+      if(!g.length) continue; any=true;
+      h+=`<h2 class="day">${dayName(d)}</h2><div class="grid">${g.map(card).join('')}</div>`;
+    }
+    if(!any) h+='<div class="empty">Nenhum jogo nos próximos 7 dias nesse filtro.</div>';
+  }
+  m.innerHTML=h;
+}
+
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b)); view=b.dataset.view; render();});
+
+document.getElementById('theme').onclick=()=>{
+  const r=document.documentElement, dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark';};
+
+if(false)(()=>{
+  if(cred<7) return; cred-=7;
+  document.getElementById('credTxt').textContent=`Créditos ${cred}/500`;
+  document.getElementById('credBar').style.width=(cred/5)+'%';
+  const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  document.querySelector('.src').textContent=`Odds: Pinnacle · atualizadas hoje às ${now}`;
+  GAMES.forEach(g=>{ if(g.st==='fim') return; const k=g.o.x12?'x12':'ml'; g._mv=[];
+    g.o[k]=g.o[k].map((v,i)=>{const n=Math.max(1.01,+(v*(1+(Math.random()-.5)*.08)).toFixed(2)); g._mv[i]=n>v?'up':n<v?'down':''; return n;});});
+  render(); setTimeout(()=>{GAMES.forEach(g=>delete g._mv);},4000);
+});
+
+// simulação do ao vivo
+let tick=0;
+setInterval(()=>{
+  tick++;
+  GAMES.filter(g=>g.st==='live').forEach(g=>{
+    const nba=g.lg==='NBA';
+    if(nba){ const side=Math.random()<.5?'hs':'as'; g[side]+=Math.random()<.3?3:2; flash(g,side); }
+    else if(g.clock!=='Intervalo' && Math.random()<.12){ const side=Math.random()<.5?'hs':'as'; g[side]++; flash(g,side); }
+    if(!nba && g.clock!=='Intervalo'){ const mn=parseInt(g.clock); if(mn<90) g.clock=(mn+1)+"'"; }
+    if(g.clock==='Intervalo' && tick%6===0) g.clock="46'";
+  });
+  if(view==='hoje'){ const y=scrollY; render(); scrollTo(0,y); reflash(); }
+},5000);
+let flashing=[];
+function flash(g,side){flashing.push('s'+g.id+(side==='hs'?'h':'a'));}
+function reflash(){flashing.forEach(id=>{const e=document.getElementById(id); if(e) e.classList.add('flash');}); flashing=[];}
+
+chips(); render();
+</script>
+</body>
+</html>
