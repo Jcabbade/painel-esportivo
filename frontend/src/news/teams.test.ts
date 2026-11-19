@@ -51,6 +51,17 @@ describe('matchTeams', () => {
     expect(matchTeams('Veja como foi o jogo', handIndex)).toEqual([])
   })
 
+  it('brazilian clubs do not match european ones', () => {
+    expect(matchTeams('Cruzeiro x Atlético-MG: final do Mineiro', index)).toEqual([])
+    expect(matchTeams('Inter vence o Grêmio no Beira-Rio', handIndex)).toEqual([])
+    expect(matchTeams('Atlético de Madrid vence', index)).toEqual(['soccer:1068'])
+  })
+
+  it('nba short nicknames', () => {
+    expect(matchTeams('De volta ao Blazers, Lillard', index, 'basketball')).toHaveLength(1)
+    expect(matchTeams('Sixers vencem', index, 'basketball')).toHaveLength(1)
+  })
+
   it('sport filter', () => {
     const giants = matchTeams('Giants perdem de novo', index, 'football')
     expect(giants).toHaveLength(1)

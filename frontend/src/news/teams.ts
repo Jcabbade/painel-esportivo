@@ -7,7 +7,6 @@ import type { Sport } from '../types'
 export const ALIASES: Record<string, string> = {
   'Bayern de Munique': 'Bayern Munich',
   'Inter de Milão': 'Internazionale',
-  'Inter': 'Internazionale',
   'Barça': 'Barcelona',
   'Atlético de Madrid': 'Atlético Madrid',
   'Milan': 'AC Milan',
@@ -16,10 +15,13 @@ export const ALIASES: Record<string, string> = {
   'PSG': 'Paris Saint-Germain',
   'Leverkusen': 'Bayer Leverkusen',
   'Dortmund': 'Borussia Dortmund',
+  'Blazers': 'Portland Trail Blazers',
+  'Sixers': 'Philadelphia 76ers',
 }
 
-/** Nomes de time que são palavras comuns em português: nunca contam. */
-const COMMON_WORDS = new Set(['como', 'levante', 'granada'])
+/** Nomes que nunca contam sozinhos: palavras comuns em português ou clubes brasileiros homônimos
+    ("Atlético" = Atlético-MG/PR no noticiário daqui; "Inter" = Internacional, por isso não é apelido). */
+const COMMON_WORDS = new Set(['como', 'levante', 'granada', 'atletico'])
 
 export interface TeamIndex {
   /** nome normalizado → chaves 'sport:id' (mais de uma = ambíguo) */
