@@ -92,3 +92,24 @@ Estatística que não existir de forma consistente na fonte sai da v1 e o usuár
 
 ## 7. Deixado para o construtor
 Estrutura de pastas, esquema exato das tabelas, componentes de UI, biblioteca de gráficos (se precisar), estratégia de testes, porta do servidor, intervalo entre requisições da carga, visual (cores/tipografia próprias, inspirado no protótipo em `prototipo/painel.html` e nos prints do StatsHub, sem copiar a marca).
+
+## 8. Revisão (2026-11-19): acesso pelo celular sem o notebook
+
+O usuário quer abrir o painel no celular sem depender do notebook ligado. O painel continua sendo de **uso só dele** (não será compartilhado).
+
+**Fato que viabiliza:** a API da ESPN responde com `Access-Control-Allow-Origin: *`, então o navegador do celular pode buscar os dados direto nela.
+
+**Abordagens consideradas:**
+| | Como | Decisão |
+|---|---|---|
+| **A** | Site estático grátis (GitHub Pages); o navegador busca placares, agenda, classificação e detalhes direto na ESPN; rankings (Plano 3) gerados 1×/dia por GitHub Actions e publicados como JSON junto do site | **Escolhida** |
+| B | Servidor sempre ligado grátis (Oracle Cloud Always Free) rodando o código atual | Rejeitada: pede cartão, exige manter um servidor Linux, risco de desligamento |
+| C | Notebook + Tailscale | Rejeitada: continua dependendo do notebook ligado |
+
+**O que muda no design:**
+- O **frontend deixa de depender do servidor**: uma camada de dados no próprio navegador busca a ESPN, interpreta (mesmas regras do parser Python: status, placar, campanha, posição) e aplica os mesmos avisos de dado desatualizado/falha por liga.
+- **Favoritos** ficam no próprio aparelho (armazenamento do navegador); não sincronizam entre celular e notebook. Aceito pelo usuário.
+- **Hospedagem:** repositório público no GitHub do usuário + GitHub Pages, publicado por GitHub Actions a cada push. Endereço `https://<usuario>.github.io/painel-esportivo/`, sem divulgação. Commits com o e-mail anônimo do GitHub (o e-mail pessoal não pode ficar público).
+- Instalável na tela inicial do celular (manifesto web com ícone e nome).
+- **Backend Python:** deixa de ser necessário para a tela. Passa a ser a base do job diário de histórico/rankings do Plano 3 (rodando no GitHub Actions). O servidor local e a tarefa de inicialização podem ser desligados quando o site estiver no ar (decisão do usuário).
+- Anti-objetivos continuam valendo: nada estimado, aviso quando uma liga falha ou o dado está velho.
