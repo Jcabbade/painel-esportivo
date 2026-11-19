@@ -38,6 +38,16 @@ describe('parseSource', () => {
     expect(items.some(i => /New YouTube Video Uploaded/i.test(i.title))).toBe(false)
   })
 
+  it('telegram long first line keeps the rest in the summary', () => {
+    const long = 'Bayern president on Olise: ' + 'palavra '.repeat(30) + 'FIM-DA-LINHA'
+    const html = `<div class="tgme_widget_message_wrap"><div data-post="FabrizioRomanoTG/1">
+      <div class="tgme_widget_message_text js-message_text">${long}<br/>segunda linha</div>
+      <time datetime="2026-11-19T20:00:00+00:00"></time></div>`
+    const [it] = parseSource('fabrizio_tg', html, ctx)
+    expect(it.title.endsWith('…')).toBe(true)
+    expect(it.summary).toContain('FIM-DA-LINHA')
+  })
+
   it('youtube entries', () => {
     const items = parseSource('fabrizio_yt', fixtureText('news/fabrizio_yt.xml'), ctx)
     expect(items).toHaveLength(15)

@@ -141,7 +141,9 @@ function parseTelegram(body: string, ctx: ParseCtx): NewsItem[] {
     const photo = /tgme_widget_message_photo_wrap[^>]*background-image:url\('([^']+)'\)/.exec(b)?.[1] ?? null
     const full = lines.join(' ')
     const n = item('fabrizio_tg', {
-      title: toText(lines[0], 120), summary: lines.slice(1).join(' '), url: `https://t.me/${post}`,
+      // Primeira linha longa: o título é cortado, então o resumo começa pelo texto todo.
+      title: toText(lines[0], 120), summary: lines[0].length > 120 ? full : lines.slice(1).join(' '),
+      url: `https://t.me/${post}`,
       image: photo, published: time, video: /tgme_widget_message_video/.test(b),
       teams: matchTeams(full, ctx.index),
     })

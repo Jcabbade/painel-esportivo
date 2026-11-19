@@ -11,11 +11,19 @@ import { MiniStandings } from './detail/MiniStandings'
 import { Periods } from './detail/Periods'
 import { Stats } from './detail/Stats'
 import { TeamLogo } from './GameRow'
+import { FavoritesNews } from './news/FavoritesNews'
+import { NewsCard } from './news/NewsCard'
+import { newsForGame } from '../news/loadNews'
+import type { NewsFile } from '../news/types'
+import { Section } from './detail/Section'
 
 interface Props {
   game: Game | null
   leagueName: string
   onClose: () => void
+  news: NewsFile | null
+  favs: Set<string>
+  onSeeAllNews: () => void
 }
 
 const LIVE_REFRESH = 30_000
@@ -33,7 +41,7 @@ function aggText(a: Aggregate): string {
   return [a.leg, a.round ? ROUNDS[a.round] ?? a.round : null, `agregado ${a.home}–${a.away}`].filter(Boolean).join(' · ')
 }
 
-export function DetailPane({ game, leagueName, onClose }: Props) {
+export function DetailPane({ game, leagueName, onClose, news, favs, onSeeAllNews }: Props) {
   const [state, setState] = useState<DetailState>({ detail: null, error: null })
   const [loading, setLoading] = useState(false)
   const loader = useRef(createDetailLoader())
@@ -77,6 +85,13 @@ export function DetailPane({ game, leagueName, onClose }: Props) {
   }, [id, live, fetchDetail])
 
   if (!game) {
+    if (news && favs.size > 0) {
+      return (
+        <aside className="detail">
+          <FavoritesNews file={news} favs={favs} onSeeAll={onSeeAllNews} layout="list" />
+        </aside>
+      )
+    }
     return (
       <aside className="detail placeholder">
         <p><b>Nenhum jogo selecionado</b></p>
@@ -85,6 +100,7 @@ export function DetailPane({ game, leagueName, onClose }: Props) {
     )
   }
   const showScore = game.status === 'live' || game.status === 'final'
+  const gameNews = news ? newsForGame(news, game) : []
   const d = state.detail
   return (
     <aside className="detail open">
@@ -123,6 +139,13 @@ export function DetailPane({ game, leagueName, onClose }: Props) {
         {d.h2h && <H2H h2h={d.h2h} title={game.sport === 'soccer' ? 'Confronto direto' : 'Série da temporada'} />}
       </div>}
       <MiniStandings key={game.league} game={game} />
+      {gameNews.length > 0 && (
+        <Section title="Notícias">
+          <div className="nlist">
+            {gameNews.map(i => <NewsCard key={i.id} item={i} now={new Date()} />)}
+          </div>
+        </Section>
+      )}
     </aside>
   )
 }

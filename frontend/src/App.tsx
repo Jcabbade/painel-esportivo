@@ -4,15 +4,25 @@ import { DetailPane } from './components/DetailPane'
 import { GameList } from './components/GameList'
 import { StaleBanner } from './components/StaleBanner'
 import { StandingsPage } from './components/StandingsPage'
+import { NewsPage } from './components/NewsPage'
+import { FavoritesNews } from './components/news/FavoritesNews'
+import { loadNews } from './news/loadNews'
+import type { NewsFile } from './news/types'
 import { Toolbar } from './components/Toolbar'
 import { followToday, localToday } from './lib/dates'
 import { countLive, filterGames, formatLocalTime, groupGames, needsFastPoll, type GroupMode, type Tab } from './lib/games'
 import { LEAGUES } from './espn/leagues'
 import { loadDay, refreshLive, withFavorites } from './espn/loadDay'
-import { toggleFavorite } from './espn/store'
+import { getFavorites, toggleFavorite } from './espn/store'
 import type { Game, GamesResponse, Side } from './types'
 
-type View = 'jogos' | 'classificacao'
+type View = 'jogos' | 'classificacao' | 'noticias'
+const VIEWS: View[] = ['jogos', 'classificacao', 'noticias']
+const NEWS_REFRESH = 300_000
+
+function readOnlyFavs(): boolean {
+  try { return !!JSON.parse(localStorage.getItem('painel.noticias') ?? '{}').fav } catch { return false }
+}
 
 const LIVE_POLL = 30_000
 const IDLE_POLL = 300_000
@@ -36,7 +46,13 @@ export default function App() {
   const [offline, setOffline] = useState(false)
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [view, setView] = useState<View>(readPref('painel.view') === 'classificacao' ? 'classificacao' : 'jogos')
+  const [view, setView] = useState<View>(() => {
+    const v = readPref('painel.view') as View
+    return VIEWS.includes(v) ? v : 'jogos'
+  })
+  const [news, setNews] = useState<NewsFile | null>(null)
+  const [newsError, setNewsError] = useState<string | null>(null)
+  const [onlyFavNews, setOnlyFavNews] = useState(readOnlyFavs)
 
   const leagues = LEAGUES
   const leagueNames = useMemo(() => Object.fromEntries(LEAGUES.map(l => [l.key, l.name])), [])
@@ -45,6 +61,18 @@ export default function App() {
   useEffect(() => { document.documentElement.dataset.theme = theme; writePref('painel.theme', theme) }, [theme])
   useEffect(() => { writePref('painel.group', group) }, [group])
   useEffect(() => { writePref('painel.view', view) }, [view])
+
+  const refreshNews = useCallback(() => {
+    loadNews().then(f => { setNews(f); setNewsError(null) })
+      .catch(e => setNewsError(e instanceof Error ? e.message : String(e)))
+  }, [])
+  useEffect(() => {
+    refreshNews()
+    const t = setInterval(refreshNews, NEWS_REFRESH)
+    return () => clearInterval(t)
+  }, [refreshNews])
+  const favKeys = new Set(getFavorites())
+  const seeFavNews = () => { setOnlyFavNews(true); setView('noticias') }
   useEffect(() => {
     const t = setInterval(() => {
       const next = localToday()
@@ -111,18 +139,23 @@ export default function App() {
         <div className="brand">Painel<span>.</span>esportivo</div>
         <nav className="views seg">
           <button className={view === 'jogos' ? 'on' : ''} onClick={() => setView('jogos')}>Jogos</button>
-          <button className={view === 'classificacao' ? 'on' : ''} onClick={() => setView('classificacao')}>Classificação</button>
+          <button className={view === 'classificacao' ? 'on' : ''} onClick={() => setView('classificacao')}>Tabela</button>
+          <button className={view === 'noticias' ? 'on' : ''} onClick={() => setView('noticias')}>Notícias</button>
         </nav>
         {view === 'jogos' ? <DayBar today={today} selected={day} onSelect={setDay} /> : <div className="spacer" />}
         <button className="theme" aria-label="Alternar tema"
           onClick={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}>◐</button>
       </header>
-      {view === 'classificacao' ? <main className="body single"><StandingsPage /></main> : <>
+      {view === 'classificacao' ? <main className="body single"><StandingsPage /></main>
+        : view === 'noticias' ? <main className="body single">
+          <NewsPage file={news} error={newsError} favs={favKeys} onlyFavs={onlyFavNews} onOnlyFavs={setOnlyFavNews} onRetry={refreshNews} />
+        </main> : <>
       <StaleBanner offline={offline} stale={!!data?.stale} errors={data?.errors ?? []} leagueNames={leagueNames} />
       <main className={`body ${selected ? 'has-detail' : ''}`}>
         <section className="left">
           <Toolbar tab={tab} onTab={setTab} liveCount={live} query={query} onQuery={setQuery}
             leagues={leagues} selected={selLeagues} onToggleLeague={toggleLeague} group={group} onGroup={setGroup} />
+          {tab === 'favoritos' && <FavoritesNews file={news} favs={favKeys} onSeeAll={seeFavNews} layout="strip" />}
           <GameList groups={groups} selectedId={selectedId} onSelect={g => setSelectedId(g.id)}
             onFavorite={onFavorite} emptyText={emptyText} />
           <footer className="foot">
@@ -130,7 +163,7 @@ export default function App() {
           </footer>
         </section>
         <DetailPane game={selected} leagueName={selected ? leagueNames[selected.league] ?? '' : ''}
-          onClose={() => setSelectedId(null)} />
+          onClose={() => setSelectedId(null)} news={news} favs={favKeys} onSeeAllNews={seeFavNews} />
       </main>
       </>}
     </div>
