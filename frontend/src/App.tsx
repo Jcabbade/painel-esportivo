@@ -5,8 +5,8 @@ import { DetailPane } from './components/DetailPane'
 import { GameList } from './components/GameList'
 import { StaleBanner } from './components/StaleBanner'
 import { Toolbar } from './components/Toolbar'
-import { localToday } from './lib/dates'
-import { countLive, filterGames, formatLocalTime, groupGames, type GroupMode, type Tab } from './lib/games'
+import { followToday, localToday } from './lib/dates'
+import { countLive, filterGames, formatLocalTime, groupGames, needsFastPoll, type GroupMode, type Tab } from './lib/games'
 import type { Game, GamesResponse, League, Side } from './types'
 
 const LIVE_POLL = 30_000
@@ -40,7 +40,13 @@ export default function App() {
   useEffect(() => { writePref('painel.group', group) }, [group])
   useEffect(() => { getLeagues().then(setLeagues).catch(() => setOffline(true)) }, [])
   useEffect(() => {
-    const t = setInterval(() => setToday(localToday()), 60_000)
+    const t = setInterval(() => {
+      const next = localToday()
+      setToday(prev => {
+        if (prev !== next) setDay(d => followToday(prev, next, d))
+        return next
+      })
+    }, 60_000)
     return () => clearInterval(t)
   }, [])
 
@@ -60,10 +66,11 @@ export default function App() {
 
   const games = useMemo(() => data?.date === day ? data.games : [], [data, day])
   const live = countLive(games)
+  const fast = needsFastPoll(games)
   useEffect(() => {
-    const t = setInterval(load, day === today && live > 0 ? LIVE_POLL : IDLE_POLL)
+    const t = setInterval(load, fast ? LIVE_POLL : IDLE_POLL)
     return () => clearInterval(t)
-  }, [load, day, today, live])
+  }, [load, fast])
 
   const visible = filterGames(games, { tab, leagues: selLeagues, query }, leagueNames)
   const groups = groupGames(visible, group, leagueOrder, leagueNames)

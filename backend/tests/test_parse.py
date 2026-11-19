@@ -55,3 +55,8 @@ def test_parse_standings_ranks(fixture):
 
 def test_parse_standings_empty():
     assert parse_standings({}) == {}
+
+
+def test_parse_suspended_is_postponed(fixture):
+    (g,) = parse_scoreboard(league("PL"), with_status(fixture("sb_PL_20261108.json"), "post", "STATUS_SUSPENDED"))
+    assert g.status == "postponed" and g.home.score is None

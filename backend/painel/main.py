@@ -51,7 +51,7 @@ async def _live_loop(syncer: Syncer) -> None:
     while True:
         try:
             await asyncio.to_thread(syncer.sync_live)
-            wait = next_live_interval(repo.has_live_games(syncer.conn))
+            wait = next_live_interval(repo.has_live_games(syncer.conn, _now()))
         except Exception:
             log.exception("erro no laço ao vivo")
             wait = 60

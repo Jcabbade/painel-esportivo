@@ -63,3 +63,12 @@ export function groupGames(games: Game[], mode: GroupMode, leagueOrder: string[]
 export function countLive(games: Game[]): number {
   return games.filter(g => g.status === 'live').length
 }
+
+const SIX_HOURS = 6 * 3600 * 1000
+
+/** Atualização rápida: há jogo ao vivo ou um jogo agendado que já passou do horário (pode ter começado). */
+export function needsFastPoll(games: Game[], now: Date = new Date()): boolean {
+  const t = now.getTime()
+  return games.some(g => g.status === 'live' || (g.status === 'scheduled'
+    && Date.parse(g.start_utc) <= t && t - Date.parse(g.start_utc) < SIX_HOURS))
+}

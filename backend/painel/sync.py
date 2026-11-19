@@ -40,7 +40,7 @@ class Syncer:
             self._sync_league(lg, espn_days)
 
     def sync_live(self) -> None:
-        live = repo.live_leagues(self.conn)
+        live = repo.live_leagues(self.conn, self.clock())
         days = espn_dates_for_local_day(self.today())
         for lg in self.leagues:
             if lg.key in live:
@@ -52,7 +52,7 @@ class Syncer:
                 continue
             try:
                 ranks = parse_standings(self.client.standings(lg))
-            except EspnError as e:
+            except Exception as e:
                 log.warning("classificação %s: %s", lg.key, e)
                 repo.log_sync(self.conn, lg.key, "standings", False, str(e), self.clock())
                 continue
@@ -66,6 +66,11 @@ class Syncer:
             except EspnError as e:
                 log.warning("scoreboard %s %s: %s", lg.key, d, e)
                 repo.log_sync(self.conn, lg.key, "scoreboard", False, str(e), self.clock())
+                return
+            except Exception as e:  # resposta em formato inesperado: não pode parar as outras ligas
+                log.exception("scoreboard %s %s: formato inesperado", lg.key, d)
+                repo.log_sync(self.conn, lg.key, "scoreboard", False, f"resposta inesperada da ESPN: {e!r}",
+                              self.clock())
                 return
             repo.upsert_games(self.conn, games, self.clock())
         repo.log_sync(self.conn, lg.key, "scoreboard", True, None, self.clock())

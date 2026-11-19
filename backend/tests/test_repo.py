@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
@@ -90,7 +90,33 @@ def test_sync_health_lists_all_leagues(conn):
 
 def test_has_live_games(conn):
     repo.upsert_games(conn, [game("1", NOW)], NOW)
-    assert repo.has_live_games(conn) is False
+    assert repo.has_live_games(conn, NOW) is False
     repo.upsert_games(conn, [game("2", NOW, status="live")], NOW)
-    assert repo.has_live_games(conn) is True
-    assert repo.live_leagues(conn) == {"PL"}
+    assert repo.has_live_games(conn, NOW) is True
+    assert repo.live_leagues(conn, NOW) == {"PL"}
+
+
+def test_live_leagues_ignores_old_live(conn):
+    old = game("old", NOW - timedelta(hours=7), league="NBA", sport="basketball", status="live")
+    repo.upsert_games(conn, [old], NOW)
+    assert repo.live_leagues(conn, NOW) == set()
+    assert repo.has_live_games(conn, NOW) is False
+
+
+def test_live_leagues_includes_started_scheduled(conn):
+    started = game("s", NOW - timedelta(minutes=2), status="scheduled")
+    later = game("l", NOW + timedelta(hours=1), league="NBA", sport="basketball", status="scheduled")
+    repo.upsert_games(conn, [started, later], NOW)
+    assert repo.live_leagues(conn, NOW) == {"PL"}
+
+
+def test_sync_health_ignores_standings(conn):
+    t = lambda h, m: datetime(2026, 11, 19, h, m, tzinfo=timezone.utc)
+    repo.log_sync(conn, "PL", "scoreboard", True, None, t(10, 0))
+    repo.log_sync(conn, "PL", "scoreboard", False, "503", t(10, 5))
+    repo.log_sync(conn, "PL", "standings", True, None, t(10, 6))
+    repo.log_sync(conn, "UCL", "scoreboard", True, None, t(10, 0))
+    repo.log_sync(conn, "UCL", "standings", False, "formato", t(10, 6))
+    h = {x["league"]: x for x in repo.sync_health(conn)}
+    assert h["PL"]["failing"] is True and h["PL"]["last_ok"] == "2026-11-19T10:00:00Z"
+    assert h["UCL"]["failing"] is False

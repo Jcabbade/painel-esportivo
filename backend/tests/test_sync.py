@@ -74,6 +74,7 @@ def test_sync_records_error_and_keeps_games(env):
 def test_sync_live_only_live_leagues(env):
     conn, client, s = env
     client.payloads["PL"] = with_status(client.payloads["PL"], "in", "STATUS_FIRST_HALF", "30'")
+    client.payloads["PL"]["events"][0]["date"] = "2026-11-19T14:30Z"  # começou há 30 min
     s.sync_local_days([date(2026, 11, 19)])
     client.calls.clear()
     s.sync_live()
@@ -90,3 +91,13 @@ def test_sync_standings_only_soccer(env):
 def test_next_live_interval():
     assert next_live_interval(True) == 30
     assert next_live_interval(False) == 600
+
+
+def test_malformed_payload_logs_error_and_continues(env):
+    conn, client, s = env
+    client.payloads["PL"] = {"events": [{"id": "x", "competitions": [{}], "status": {"type": {"state": "pre"}}}]}
+    s.sync_local_days([date(2026, 11, 19)])
+    health = {h["league"]: h for h in repo.sync_health(conn)}
+    assert health["PL"]["failing"] is True
+    assert health["NBA"]["failing"] is False
+    assert conn.execute("SELECT COUNT(*) c FROM games WHERE league='NBA'").fetchone()["c"] == 5

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, dayLabel, localToday } from './dates'
+import { addDays, dayLabel, followToday, localToday } from './dates'
 
 describe('dates', () => {
   it('localToday uses Sao Paulo', () => {
@@ -16,5 +16,18 @@ describe('dates', () => {
     expect(dayLabel('2026-11-20', today)).toEqual({ top: 'Amanhã', bottom: '20/11' })
     expect(dayLabel('2026-11-18', today)).toEqual({ top: 'Ontem', bottom: '18/11' })
     expect(dayLabel('2026-11-22', today)).toEqual({ top: 'Dom', bottom: '22/11' })
+  })
+})
+
+describe('followToday', () => {
+  it('moves selection along when it was on the old today', () => {
+    expect(followToday('2026-11-19', '2026-11-20', '2026-11-19')).toBe('2026-11-20')
+  })
+  it('keeps a chosen day that is still in range', () => {
+    expect(followToday('2026-11-19', '2026-11-20', '2026-11-22')).toBe('2026-11-22')
+  })
+  it('falls back to today when the chosen day left the bar range', () => {
+    expect(followToday('2026-11-19', '2026-11-23', '2026-11-19')).toBe('2026-11-23')
+    expect(followToday('2026-11-19', '2026-11-23', '2026-11-17')).toBe('2026-11-23')
   })
 })

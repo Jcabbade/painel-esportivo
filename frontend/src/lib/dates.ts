@@ -24,3 +24,10 @@ export function dayLabel(day: string, today: string): { top: string; bottom: str
   const top = special[day] ?? WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]
   return { top, bottom }
 }
+
+/** Ao virar o dia com o painel aberto: quem estava em "hoje" acompanha; dia fora da barra volta para hoje. */
+export function followToday(prevToday: string, newToday: string, day: string): string {
+  if (day === prevToday) return newToday
+  if (day < addDays(newToday, -3) || day > addDays(newToday, 7)) return newToday
+  return day
+}

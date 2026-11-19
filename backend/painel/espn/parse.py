@@ -3,7 +3,7 @@ from datetime import datetime
 from painel.config import League
 from painel.models import Game, Status, TeamSide
 
-_POSTPONED = {"STATUS_POSTPONED", "STATUS_DELAYED"}
+_POSTPONED = {"STATUS_POSTPONED", "STATUS_DELAYED", "STATUS_SUSPENDED"}
 _CANCELED = {"STATUS_CANCELED", "STATUS_ABANDONED", "STATUS_FORFEIT"}
 
 

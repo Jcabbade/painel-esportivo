@@ -125,9 +125,9 @@ def log_sync(conn: sqlite3.Connection, league: str, kind: str, ok: bool, message
 def sync_health(conn: sqlite3.Connection) -> list[dict]:
     out = []
     for lg in config.LEAGUES:
-        ok = conn.execute("SELECT MAX(at) at FROM sync_log WHERE league=? AND ok=1", (lg.key,)).fetchone()["at"]
+        ok = conn.execute("SELECT MAX(at) at FROM sync_log WHERE league=? AND kind='scoreboard' AND ok=1", (lg.key,)).fetchone()["at"]
         err = conn.execute(
-            "SELECT message, at FROM sync_log WHERE league=? AND ok=0 ORDER BY at DESC LIMIT 1", (lg.key,)
+            "SELECT message, at FROM sync_log WHERE league=? AND kind='scoreboard' AND ok=0 ORDER BY at DESC LIMIT 1", (lg.key,)
         ).fetchone()
         err_at = err["at"] if err else None
         out.append({
@@ -140,9 +140,22 @@ def sync_health(conn: sqlite3.Connection) -> list[dict]:
     return out
 
 
-def live_leagues(conn: sqlite3.Connection) -> set[str]:
-    return {r["league"] for r in conn.execute("SELECT DISTINCT league FROM games WHERE status = 'live'")}
+LIVE_MAX_AGE = timedelta(hours=6)
 
 
-def has_live_games(conn: sqlite3.Connection) -> bool:
-    return bool(live_leagues(conn))
+def live_leagues(conn: sqlite3.Connection, now: datetime) -> set[str]:
+    """Ligas com jogo em andamento: 'live' ou 'scheduled' que já passou do horário, iniciados há menos de 6 h.
+
+    O limite de 6 h evita que um jogo que nunca mais foi atualizado (PC desligado, evento removido pela ESPN)
+    deixe o laço ao vivo consultando a ESPN para sempre.
+    """
+    rows = conn.execute(
+        """SELECT DISTINCT league FROM games
+           WHERE status IN ('live', 'scheduled') AND start_utc <= ? AND start_utc > ?""",
+        (iso(now), iso(now - LIVE_MAX_AGE)),
+    )
+    return {r["league"] for r in rows}
+
+
+def has_live_games(conn: sqlite3.Connection, now: datetime) -> bool:
+    return bool(live_leagues(conn, now))

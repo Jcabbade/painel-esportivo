@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Game, GameStatus, Side } from '../types'
-import { countLive, filterGames, formatLocalTime, groupGames } from './games'
+import { countLive, filterGames, formatLocalTime, groupGames, needsFastPoll } from './games'
 
 const side = (name: string, abbrev: string, favorite = false): Side => ({
   team_id: abbrev, name, short_name: name, abbrev, logo: null, score: null, record: null, rank: null, favorite,
@@ -69,5 +69,21 @@ describe('helpers', () => {
   })
   it('formatLocalTime', () => {
     expect(formatLocalTime('2026-11-20T02:30:00Z')).toBe('23:30')
+  })
+})
+
+describe('needsFastPoll', () => {
+  const now = new Date('2026-11-19T20:05:00Z')
+  it('true when a game is live', () => {
+    expect(needsFastPoll([game('1', 'PL', 'live')], now)).toBe(true)
+  })
+  it('true when a scheduled game has passed its start time', () => {
+    expect(needsFastPoll([game('1', 'PL', 'scheduled', '2026-11-19T20:00:00Z')], now)).toBe(true)
+  })
+  it('false for future or finished games', () => {
+    expect(needsFastPoll([game('1', 'PL', 'scheduled', '2026-11-19T21:00:00Z'), game('2', 'PL', 'final')], now)).toBe(false)
+  })
+  it('false for a scheduled game that started more than 6h ago', () => {
+    expect(needsFastPoll([game('1', 'PL', 'scheduled', '2026-11-19T13:00:00Z')], now)).toBe(false)
   })
 })
