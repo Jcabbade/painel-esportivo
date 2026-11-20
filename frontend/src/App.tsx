@@ -7,7 +7,6 @@ import { StandingsPage } from './components/StandingsPage'
 import { NewsPage } from './components/NewsPage'
 import { LeaguesRanking } from './components/LeaguesRanking'
 import { TeamsRanking } from './components/TeamsRanking'
-import { FavoritesNews } from './components/news/FavoritesNews'
 import { loadNews } from './news/loadNews'
 import { FavoriteTeams } from './components/FavoriteTeams'
 import type { NewsFile } from './news/types'
@@ -166,7 +165,6 @@ export default function App() {
           {tab === 'favoritos' && <FavoriteTeams favs={favKeys} />}
           <GameList groups={groups} selectedId={selectedId} onSelect={g => setSelectedId(g.id)}
             onFavorite={onFavorite} emptyText={emptyText} />
-          {tab === 'favoritos' && <FavoritesNews file={news} favs={favKeys} onSeeAll={seeFavNews} layout="strip" />}
           <footer className="foot">
             {data?.updated_at ? `Dados ESPN · atualizado às ${formatLocalTime(data.updated_at)}` : 'Dados ESPN · aguardando a primeira atualização'}
           </footer>

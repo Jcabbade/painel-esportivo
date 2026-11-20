@@ -35,11 +35,13 @@ export async function loadNews(opts: { fetch?: Fetcher; now?: Date } = {}): Prom
   return file
 }
 
+const MAX_TEAMS = 3
 const newest = (a: NewsItem, b: NewsItem) => b.published.localeCompare(a.published)
 
 export function newsForTeams(file: NewsFile, keys: Set<string>, limit = Infinity): NewsItem[] {
   if (!keys.size) return []
-  return file.items.filter(i => i.teams.some(t => keys.has(t))).sort(newest).slice(0, limit)
+  // Matéria marcada com mais de 3 times é resumo da liga (top 10, rodada), não notícia do time.
+  return file.items.filter(i => i.teams.length <= MAX_TEAMS && i.teams.some(t => keys.has(t))).sort(newest).slice(0, limit)
 }
 
 export function newsForGame(file: NewsFile, game: Game, limit = 6): NewsItem[] {

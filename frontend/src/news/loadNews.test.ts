@@ -29,6 +29,15 @@ describe('news selectors', () => {
     expect(newsForTeams(f, new Set())).toEqual([])
   })
 
+  it('resumos da liga (mais de 3 times marcados) não contam como notícia do time', () => {
+    const many = Array.from({ length: 24 }, (_, i) => `basketball:${i + 1}`)
+    const f = file([
+      it_('top10', '2026-11-19T12:00:00.000Z', many),
+      it_('jogo', '2026-11-19T11:00:00.000Z', ['basketball:13', 'basketball:26']),
+    ])
+    expect(newsForTeams(f, new Set(['basketball:13'])).map(i => i.url)).toEqual(['jogo'])
+  })
+
   it('newsForGame uses both teams and sport', () => {
     const f = file([
       it_('a', '2026-11-19T10:00:00.000Z', ['basketball:86']),
