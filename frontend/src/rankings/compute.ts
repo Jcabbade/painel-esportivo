@@ -33,6 +33,8 @@ export interface TeamOpts {
   last: 5 | 10 | 15 | 20 | 'season'
   venue: 'all' | 'home' | 'away'
   order: 'desc' | 'asc'
+  /** Mínimo de jogos para o time entrar (evita que clube com 1 jogo de copa lidere). Padrão: 1. */
+  minGames?: number
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100
@@ -153,7 +155,7 @@ export function teamRanking(files: LeagueFile[], o: TeamOpts): TeamRow[] {
       if (n && m.kind === 'btts') { row.pct = pctOf(both, n); row.hits = both }
       if (n && m.kind === 'result') { row.pct = pctOf(w, n); row.hits = w; row.result = { w: pctOf(w, n), d: pctOf(d, n), l: pctOf(l, n) } }
     }
-    if (row.games > 0) rows.push(row)
+    if (row.games >= Math.max(1, o.minGames ?? 1)) rows.push(row)
   }
 
   const key = (r: TeamRow) => (measureKey(m, o.measure) === 'avg' ? r.avg : r.pct) ?? 0

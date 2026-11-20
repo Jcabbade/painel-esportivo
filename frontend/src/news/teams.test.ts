@@ -57,6 +57,21 @@ describe('matchTeams', () => {
     expect(matchTeams('Atlético de Madrid vence', index)).toEqual(['soccer:1068'])
   })
 
+  it('times sul-americanos não roubam nomes de europeus nem palavras comuns', () => {
+    const sa = buildTeamIndex([
+      { league: 'ESP', sport: 'soccer', payload: { children: [{ standings: { entries: [team('83', 'Barcelona')] } }] } },
+      { league: 'LIB', sport: 'soccer', payload: { children: [{ standings: { entries: [
+        team('2686', 'Barcelona SC', 'Barcelona'), team('4', 'Nacional'),
+      ] } }] } },
+      { league: 'BRA', sport: 'soccer', payload: { children: [{ standings: { entries: [team('3457', 'Vitória')] } }] } },
+    ])
+    expect(matchTeams('Fabrizio: Barcelona fecha com atacante', sa)).toEqual(['soccer:83'])
+    expect(matchTeams('Flamengo garante vitória fora de casa', sa)).toEqual([])
+    expect(matchTeams('Seleção nacional convoca', sa)).toEqual([])
+    expect(matchTeams('Vitória-BA vence o Bahia', sa)).toEqual(['soccer:3457'])
+    expect(matchTeams('EC Vitória anuncia técnico', sa)).toEqual(['soccer:3457'])
+  })
+
   it('nba short nicknames', () => {
     expect(matchTeams('De volta ao Blazers, Lillard', index, 'basketball')).toHaveLength(1)
     expect(matchTeams('Sixers vencem', index, 'basketball')).toHaveLength(1)

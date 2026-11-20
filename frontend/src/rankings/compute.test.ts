@@ -162,6 +162,16 @@ describe('teamRanking', () => {
     expect(desc.slice(0, 3)).toEqual(['1', '2', '3'])     // 1 e 2 empatam em 2,0; 1 tem mais jogos
     expect(teamRanking([f], { ...base, order: 'asc' })[0].teamId).toBe('9')
   })
+
+  it('minGames: time eliminado na copa com 1 jogo não lidera o ranking', () => {
+    const f = file('CDB', [
+      g({ h: '50', a: '51', hs: 6, as: 0 }),                       // clube pequeno, 1 jogo
+      g({ h: '1', a: '2', hs: 2, as: 0 }), g({ h: '2', a: '1', hs: 0, as: 2 }), g({ h: '1', a: '3', hs: 1, as: 1 }),
+    ])
+    const ids = teamRanking([f], { ...base, minGames: 3 }).map(r => r.teamId)
+    expect(ids).toEqual(['1'])
+    expect(teamRanking([f], base).map(r => r.teamId)[0]).toBe('50')  // sem mínimo: comportamento antigo
+  })
 })
 
 describe('dataStatus', () => {

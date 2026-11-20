@@ -35,7 +35,7 @@ export function TeamsRanking() {
 
   const measure: Measure = !isCount || p.measure === 'avg' ? { kind: 'avg' } : { kind: p.measure, line }
   const rows = h.loading ? [] : teamRanking(h.files, {
-    metricId: metric.id, period, view: p.view, measure, last: p.last, venue: p.venue, order: p.order,
+    metricId: metric.id, period, view: p.view, measure, last: p.last, venue: p.venue, order: p.order, minGames: 3,
   })
   const favs = getFavorites()
   const scopes = [{ value: SOCCER_ALL, label: 'Futebol (todas)' }, ...LEAGUES.map(l => ({ value: l.key, label: l.name }))]

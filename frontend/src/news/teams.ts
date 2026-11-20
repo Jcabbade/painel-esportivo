@@ -17,11 +17,13 @@ export const ALIASES: Record<string, string> = {
   'Dortmund': 'Borussia Dortmund',
   'Blazers': 'Portland Trail Blazers',
   'Sixers': 'Philadelphia 76ers',
+  'Vitória-BA': 'Vitória',
+  'EC Vitória': 'Vitória',
 }
 
 /** Nomes que nunca contam sozinhos: palavras comuns em português ou clubes brasileiros homônimos
     ("Atlético" = Atlético-MG/PR no noticiário daqui; "Inter" = Internacional, por isso não é apelido). */
-const COMMON_WORDS = new Set(['como', 'levante', 'granada', 'atletico'])
+const COMMON_WORDS = new Set(['como', 'levante', 'granada', 'atletico', 'vitoria', 'nacional'])
 
 /** Nomes de uma palavra que, em texto brasileiro, costumam ser outra coisa (Everton Ribeiro, Barcelona-EQU,
     Liverpool-URU, a cidade de Valência, o verbo "pisa"). Só contam fora do modo estrito. */
@@ -63,6 +65,12 @@ export function buildTeamIndex(standings: { league: string; sport: Sport; payloa
   for (const s of standings) for (const c of (s.payload as any)?.children ?? []) walk(c, s.sport)
   for (const [alias, display] of Object.entries(ALIASES)) {
     for (const key of byDisplay.get(norm(display)) ?? []) add(alias, key)
+  }
+  // Nome completo vence apelido: "Barcelona" é o FC Barcelona (displayName), não o Barcelona SC (shortDisplayName).
+  for (const [n, keys] of names) {
+    if (keys.size < 2) continue
+    const full = [...(byDisplay.get(n) ?? [])].filter(k => keys.has(k))
+    if (full.length === 1) names.set(n, new Set(full))
   }
   return { names }
 }
