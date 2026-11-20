@@ -32,7 +32,7 @@ describe('agenda do time favorito', () => {
         throw new Error('404')
       },
     })
-    expect(calls.length).toBe(10) // 5 ligas × (passados + próximos)
+    expect(calls.length).toBe(18) // 9 ligas × (passados + próximos)
     expect(s.name).toBe('Real Madrid')
     expect(s.next?.date).toBe('2026-11-21T20:00Z')
   })

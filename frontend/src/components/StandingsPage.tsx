@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LEAGUES, league as leagueOf } from '../espn/leagues'
+import { LEAGUES, initialStandingsKey, league as leagueOf } from '../espn/leagues'
 import { loadStandings, type StandingGroup, type StandingsLevel } from '../espn/standings'
 import { getFavorites } from '../espn/store'
 import { StandingsTable } from './StandingsTable'
@@ -13,7 +13,7 @@ function writePref(key: string, value: string) {
 
 export function StandingsPage() {
   const saved = readPref('painel.liga_classificacao')
-  const [key, setKey] = useState(LEAGUES.some(l => l.key === saved) ? saved! : 'PL')
+  const [key, setKey] = useState(() => initialStandingsKey(saved))
   const [level, setLevel] = useState<StandingsLevel>('conference')
   const [groups, setGroups] = useState<StandingGroup[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -23,6 +23,7 @@ export function StandingsPage() {
     let alive = true
     setGroups(null)
     setError(null)
+    if (leagueOf(key).knockout) return () => { alive = false }
     loadStandings(key, level)
       .then(g => { if (alive) setGroups(g) })
       .catch(e => { if (alive) setError(e instanceof Error ? e.message : String(e)) })
@@ -54,7 +55,8 @@ export function StandingsPage() {
         )}
       </div>
       <div className="list">
-        {!groups && !error && <p className="empty">Carregando…</p>}
+        {lg.knockout && <p className="empty">Competição em mata-mata, sem tabela de classificação.</p>}
+        {!lg.knockout && !groups && !error && <p className="empty">Carregando…</p>}
         {error && (
           <div className="derr">
             <p>Não foi possível carregar a classificação ({error}).</p>
