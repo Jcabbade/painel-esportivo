@@ -65,15 +65,19 @@ export function summarizeSchedule(payloads: any[], teamId: string, now: Date): T
   }
 }
 
-/** `key` = 'soccer:86'. Futebol: procura nas 5 ligas (passados e próximos); NBA/NFL: uma rota só. */
+/** `key` = 'soccer:86'. Futebol: a rota `soccer/all` traz todas as competições do time em 2 buscas
+    (passados e próximos); se ela falhar, procura liga por liga. NBA/NFL: uma rota só. */
 export async function loadFavoriteTeam(key: string, opts: { fetch?: Fetcher; now?: Date } = {}): Promise<TeamSummary> {
   const [sport, id] = key.split(':') as [Sport, string]
   const fetch = opts.fetch ?? fetchJson
-  const urls = LEAGUES.filter(l => l.sport === sport).flatMap(l => {
-    const base = `${ESPN_SITE}/${l.path}/teams/${id}/schedule`
+  const fetchAll = async (urls: string[]) =>
+    (await Promise.all(urls.map(u => fetch(u).catch(() => null)))).filter(p => p && Array.isArray((p as any).events))
+  const routes = (path: string) => {
+    const base = `${ESPN_SITE}/${path}/teams/${id}/schedule`
     return sport === 'soccer' ? [base, `${base}?fixture=true`] : [base]
-  })
-  const got = (await Promise.all(urls.map(u => fetch(u).catch(() => null)))).filter(p => p && Array.isArray((p as any).events))
+  }
+  let got = sport === 'soccer' ? await fetchAll(routes('soccer/all')) : []
+  if (!got.length) got = await fetchAll(LEAGUES.filter(l => l.sport === sport).flatMap(l => routes(l.path)))
   if (!got.length) throw new Error('agenda do time indisponível')
   return summarizeSchedule(got, id, opts.now ?? new Date())
 }

@@ -21,18 +21,35 @@ describe('agenda do time favorito', () => {
     expect(Date.parse(s.last!.date)).toBeLessThan(now.getTime())
   })
 
-  it('futebol: busca todas as ligas e ignora as que falham', async () => {
+  it('futebol: 2 buscas na rota de todas as competições', async () => {
     const calls: string[] = []
     const s = await loadFavoriteTeam('soccer:86', {
       now,
       fetch: async (u: string) => {
         calls.push(u)
+        if (u.endsWith('/soccer/all/teams/86/schedule')) return fixture('sched_ESP_86_past.json')
+        if (u.endsWith('/soccer/all/teams/86/schedule?fixture=true')) return fixture('sched_ESP_86_next.json')
+        throw new Error('404')
+      },
+    })
+    expect(calls).toHaveLength(2)
+    expect(s.name).toBe('Real Madrid')
+    expect(s.next?.date).toBe('2026-11-21T20:00Z')
+  })
+
+  it('futebol: se a rota de todas falhar, busca liga por liga e ignora as que falham', async () => {
+    const calls: string[] = []
+    const s = await loadFavoriteTeam('soccer:86', {
+      now,
+      fetch: async (u: string) => {
+        calls.push(u)
+        if (u.includes('/soccer/all/')) throw new Error('500')
         if (u.endsWith('/soccer/esp.1/teams/86/schedule')) return fixture('sched_ESP_86_past.json')
         if (u.endsWith('/soccer/esp.1/teams/86/schedule?fixture=true')) return fixture('sched_ESP_86_next.json')
         throw new Error('404')
       },
     })
-    expect(calls.length).toBe(18) // 9 ligas × (passados + próximos)
+    expect(calls.length).toBe(20) // 2 da rota geral + 9 ligas × (passados + próximos)
     expect(s.name).toBe('Real Madrid')
     expect(s.next?.date).toBe('2026-11-21T20:00Z')
   })
