@@ -9,6 +9,7 @@ import { LeaguesRanking } from './components/LeaguesRanking'
 import { TeamsRanking } from './components/TeamsRanking'
 import { FavoritesNews } from './components/news/FavoritesNews'
 import { loadNews } from './news/loadNews'
+import { FavoriteTeams } from './components/FavoriteTeams'
 import type { NewsFile } from './news/types'
 import { Toolbar } from './components/Toolbar'
 import { followToday, localToday } from './lib/dates'
@@ -133,7 +134,8 @@ export default function App() {
 
   const emptyText = loading ? 'Carregando…'
     : !data ? 'Não foi possível carregar os jogos deste dia.'
-      : games.length === 0 ? 'Nenhum jogo neste dia.' : 'Nenhum jogo com esses filtros.'
+      : games.length === 0 ? 'Nenhum jogo neste dia.'
+        : tab === 'favoritos' && !query.trim() ? 'Seus times favoritos não jogam neste dia.' : 'Nenhum jogo com esses filtros.'
 
   return (
     <div className="app">
@@ -161,9 +163,10 @@ export default function App() {
         <section className="left">
           <Toolbar tab={tab} onTab={setTab} liveCount={live} query={query} onQuery={setQuery}
             leagues={leagues} selected={selLeagues} onToggleLeague={toggleLeague} group={group} onGroup={setGroup} />
-          {tab === 'favoritos' && <FavoritesNews file={news} favs={favKeys} onSeeAll={seeFavNews} layout="strip" />}
+          {tab === 'favoritos' && <FavoriteTeams favs={favKeys} />}
           <GameList groups={groups} selectedId={selectedId} onSelect={g => setSelectedId(g.id)}
             onFavorite={onFavorite} emptyText={emptyText} />
+          {tab === 'favoritos' && <FavoritesNews file={news} favs={favKeys} onSeeAll={seeFavNews} layout="strip" />}
           <footer className="foot">
             {data?.updated_at ? `Dados ESPN · atualizado às ${formatLocalTime(data.updated_at)}` : 'Dados ESPN · aguardando a primeira atualização'}
           </footer>

@@ -2,11 +2,13 @@
   --bg: #0d1117; --surface: #151b23; --surface2: #1c2430; --border: #283241;
   --text: #e6ebf2; --muted: #8b96a8; --accent: #2fd27a; --accent-soft: #143826;
   --live: #ff5c5c; --live-soft: #3a1919; --warn: #f2b84b; --warn-soft: #3a2e14;
+  color-scheme: dark;
 }
 :root[data-theme="light"] {
   --bg: #f2f4f7; --surface: #ffffff; --surface2: #eef1f5; --border: #dbe1e9;
   --text: #141a22; --muted: #5b6676; --accent: #0b8a4c; --accent-soft: #dff3e8;
   --live: #d22b2b; --live-soft: #fde6e6; --warn: #8a5a00; --warn-soft: #fff1d6;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
@@ -178,7 +180,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ncard.compact .nimg { width: 100%; height: 110px; }
 .ncard.compact .ntitle { font-size: 13px; }
 .nlist { display: flex; flex-direction: column; gap: 8px; }
-.nstrip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; }
+.nstrip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; padding-bottom: 4px; }
 .favnews { padding: 4px 16px 8px; }
 .favnews.list { padding: 0; }
 .favnews-head { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 8px; font-size: 13.5px; }
@@ -281,3 +283,15 @@ i.f-V { background: #1f9d55; } i.f-E { background: #7b8494; } i.f-D { background
   .plseq { max-width: 48%; }
   .h2h li { grid-template-columns: 74px 1fr auto 1fr; font-size: 12.5px; }
 }
+.favteams { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin: 4px 0 12px; }
+.ftcard { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.ftcard.muted, .ftline.muted { color: var(--muted); }
+.fthead { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.fthead img { width: 24px; height: 24px; object-fit: contain; }
+.ftline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ftlabel { color: var(--muted); width: 58px; flex: none; }
+.ftline i { font-style: normal; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 4px; display: inline-grid; place-items: center; color: #fff; }
+.ftline .f-V { background: #1f9d55; } .ftline .f-E { background: #7a8394; } .ftline .f-D { background: #d14343; }
+.ftvs { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ftlg { color: var(--muted); font-size: 11px; }
+.ftlive { color: var(--live); }
