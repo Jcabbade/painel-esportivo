@@ -178,6 +178,15 @@ describe('updateLeague v2', () => {
     expect(r.file.games.map(g => g.id)).toEqual(['g1'])
   })
 
+  it('v2 games file without players file reloads', async () => {
+    const games = [{ id: 'g1', day: '2026-11-01', home: '1', away: '2', state: 'post' as const }]
+    const espn = fakeEspnV2(() => games)
+    const r = await updateLeague(null, 'PL', { ...base2, fetch: espn })
+    const again = await updateLeague(r.file, 'PL', { ...base2, fetch: espn, players: null })
+    expect(again.added).toBe(1)                       // refez a busca
+    expect(again.players.games.map(g => g.id)).toEqual(['g1'])
+  })
+
   it('players file accumulates without duplicates', async () => {
     const games = [{ id: 'g1', day: '2026-11-01', home: '1', away: '2', state: 'post' as const }]
     const espn = fakeEspnV2(() => games)

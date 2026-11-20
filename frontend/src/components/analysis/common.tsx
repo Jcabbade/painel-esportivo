@@ -1,6 +1,7 @@
 /* Peças comuns às abas de análise. */
 import { LEAGUES } from '../../espn/leagues'
-import type { LeagueFile } from '../../history/types'
+import { historyNotice } from '../../analysis/notice'
+import type { LeagueFile, Meta } from '../../history/types'
 import type { Game, Sport } from '../../types'
 import { useHistory } from '../RankingFilters'
 
@@ -13,7 +14,7 @@ export function useSportHistory(sport: Sport) {
 }
 
 export function HistoryGate({ h, children }: {
-  h: { loading: boolean; missing: boolean; errors: string[]; files: LeagueFile[]; retry: () => void }
+  h: { loading: boolean; missing: boolean; errors: string[]; files: LeagueFile[]; meta: Meta | null; retry: () => void }
   children: React.ReactNode
 }) {
   if (h.loading) return <p className="soon">Carregando histórico…</p>
@@ -26,7 +27,8 @@ export function HistoryGate({ h, children }: {
       </div>
     )
   }
-  return <>{children}</>
+  const notice = historyNotice(h.files, h.meta)
+  return <>{notice && <p className="dwarn">{notice.text}</p>}{children}</>
 }
 
 export function FormDots({ res }: { res: ('V' | 'E' | 'D')[] }) {

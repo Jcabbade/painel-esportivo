@@ -46,7 +46,9 @@ export async function updateLeague(fileIn: LeagueFile | null, leagueKey: string,
   Promise<{ file: LeagueFile; players: PlayersFile; done: boolean; added: number }> {
   const lg = leagueOf(leagueKey)
   // Histórico de versão antiga: recarrega do zero (jogadores e escanteios por faixa precisam de todos os summaries).
-  const file = fileIn?.v === HISTORY_VERSION ? fileIn : null
+  // Arquivo de jogadores ausente ou antigo (quando informado): também recarrega, senão os jogadores nunca voltam.
+  const playersOk = !('players' in opts) || opts.players?.v === HISTORY_VERSION
+  const file = fileIn?.v === HISTORY_VERSION && playersOk ? fileIn : null
   const playersIn = file && opts.players?.v === HISTORY_VERSION ? opts.players : null
   const playerGames = new Map((playersIn?.games ?? []).map(g => [g.id, g]))
   const sleep = opts.sleep ?? realSleep

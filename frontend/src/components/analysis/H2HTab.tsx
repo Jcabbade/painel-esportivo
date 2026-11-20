@@ -1,4 +1,4 @@
-import { form, headToHead } from '../../analysis/h2h'
+import { form, headToHead, recentVenue } from '../../analysis/h2h'
 import type { LeagueFile } from '../../history/types'
 import type { Game } from '../../types'
 import { Section } from '../detail/Section'
@@ -68,8 +68,8 @@ export function H2HTab({ game }: { game: Game }) {
       </Section>
       <Section title="Últimos jogos">
         <div className="oppgrid">
-          <Recent files={h.files} id={a} title={teamName(game, 'home')} venue={p.filter === 'aHome' ? 'home' : 'all'} before={game.start_utc} />
-          <Recent files={h.files} id={b} title={teamName(game, 'away')} venue={p.filter === 'aHome' ? 'away' : 'all'} before={game.start_utc} />
+          <Recent files={h.files} id={a} title={teamName(game, 'home')} venue={recentVenue(p.filter, 'home')} before={game.start_utc} />
+          <Recent files={h.files} id={b} title={teamName(game, 'away')} venue={recentVenue(p.filter, 'away')} before={game.start_utc} />
         </div>
       </Section>
     </HistoryGate>

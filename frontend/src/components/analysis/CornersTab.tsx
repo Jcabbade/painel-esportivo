@@ -1,4 +1,5 @@
 import { cornerProfile } from '../../analysis/corners'
+import { historyNotice } from '../../analysis/notice'
 import type { GameDetail } from '../../espn/detailTypes'
 import { CORNER_BUCKETS } from '../../history/players'
 import type { LeagueFile } from '../../history/types'
@@ -19,8 +20,8 @@ function Profile({ files, id, title, venue, view, before }: { files: LeagueFile[
           <table className="tbl cbk">
             <thead><tr><th className="pn">Faixa</th><th>Média</th><th>Total</th></tr></thead>
             <tbody>
-              {p.buckets.map((b, i) => (
-                <tr key={b.label} className={i === 0 ? 'hl' : ''}><th className="pn">{b.label}</th><td className="tot">{dec(b.avg)}</td><td>{b.total}</td></tr>
+              {p.buckets.map(b => (
+                <tr key={b.label}><th className="pn">{b.label}</th><td className="tot">{dec(b.avg)}</td><td>{b.total}</td></tr>
               ))}
             </tbody>
           </table>
@@ -54,12 +55,14 @@ export function CornersTab({ game, detail }: { game: Game; detail: GameDetail | 
           </div>
         </Section>
       )}
-      <Section title="Escanteios por faixa de 10 minutos (últimos 10 jogos)">
+      {historyNotice(h.files, h.meta)?.kind === 'old'
+        ? <p className="soon">Os escanteios por minuto chegam quando o histórico terminar de ser atualizado.</p>
+        : <Section title="Escanteios por faixa de 10 minutos (últimos 10 jogos)">
         <div className="oppgrid">
           <Profile files={h.files} id={game.home.team_id} title={teamName(game, 'home')} venue={p.split ? 'home' : 'all'} view={p.view} before={game.start_utc} />
           <Profile files={h.files} id={game.away.team_id} title={teamName(game, 'away')} venue={p.split ? 'away' : 'all'} view={p.view} before={game.start_utc} />
         </div>
-      </Section>
+      </Section>}
     </HistoryGate>
   )
 }

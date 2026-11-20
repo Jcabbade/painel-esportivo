@@ -5,7 +5,8 @@ import type { GameRecord, LeagueFile, PlayersFile } from '../history/types'
 import type { Game } from '../types'
 import { cornerProfile } from './corners'
 import { formationLayout } from './formation'
-import { headToHead, form } from './h2h'
+import { headToHead, form, recentVenue } from './h2h'
+import { historyNotice } from './notice'
 import { playerRanking } from './players'
 import { compare, opportunities, teamGames } from './pregame'
 
@@ -87,6 +88,23 @@ describe('h2h', () => {
     const fm = form([f], '1', 10)
     expect(fm[0]).toMatchObject({ gf: expect.any(Number), res: expect.stringMatching(/^[VED]$/) })
     expect(fm).toHaveLength(4)
+  })
+})
+
+describe('notices and filters', () => {
+  it('history notice for old or partial history', () => {
+    const v2 = file('PL', [])
+    const v1 = { ...file('ESP', []), v: undefined }
+    expect(historyNotice([v2], null)).toBeNull()
+    expect(historyNotice([v2, v1], null)).toMatchObject({ kind: 'old' })
+    const meta = { updated_at: '', leagues: { PL: { games: 1, scanned_until: null, error: null, pending: true } } }
+    expect(historyNotice([v2], meta)).toMatchObject({ kind: 'partial' })
+  })
+
+  it('recent games venue follows h2h filter for both teams', () => {
+    expect([recentVenue('total', 'home'), recentVenue('total', 'away')]).toEqual(['all', 'all'])
+    expect([recentVenue('aHome', 'home'), recentVenue('aHome', 'away')]).toEqual(['home', 'away'])
+    expect([recentVenue('bHome', 'home'), recentVenue('bHome', 'away')]).toEqual(['away', 'home'])
   })
 })
 
