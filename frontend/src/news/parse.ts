@@ -195,8 +195,7 @@ export function parseSource(id: SourceId, body: unknown, ctx: ParseCtx): NewsIte
     case 'espn': return parseEspn(body, ctx)
     case 'fabrizio_tg': return parseTelegram(String(body), ctx)
     case 'fabrizio_yt': return parseYouTube(String(body), ctx)
-    case 'hoops':
-    case 'jumper': return parseRss(id, String(body), ctx, () => ({ keep: true, leagues: ['NBA'], sport: 'basketball' }))
+    case 'hoops': return parseRss(id, String(body), ctx, () => ({ keep: true, leagues: ['NBA'], sport: 'basketball' }))
     case 'placar': return parseRss(id, String(body), ctx, (url, text) => placarRule(url, text, ctx.index))
     case 'ge': return parseRss(id, String(body), ctx, (_url, text) =>
       ({ keep: matchTeams(text, ctx.index, 'soccer', { strict: true }).length > 0, leagues: [], sport: 'soccer', strict: true }))

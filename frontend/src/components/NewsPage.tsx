@@ -74,7 +74,7 @@ export function NewsPage({ file, error, favs, onlyFavs, onOnlyFavs, onRetry }: P
         </div>
         {items.length > shown && <button className="more" onClick={() => setShown(n => n + PAGE)}>Mostrar mais</button>}
       </div>
-      <footer className="foot">Notícias de ESPN Brasil, Fabrizio Romano, Hoops Brasil, Placar, ge e Jumper Brasil · os links abrem o site original</footer>
+      <footer className="foot">Notícias de ESPN Brasil, Fabrizio Romano, Hoops Brasil, Placar e ge · os links abrem o site original</footer>
     </section>
   )
 }

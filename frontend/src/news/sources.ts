@@ -26,7 +26,6 @@ export const SOURCES: SourceDef[] = [
   { id: 'hoops', name: 'Hoops Brasil', kind: 'rss', urls: ['https://hoopsbrasil.com.br/feed/'], leagues: ['NBA'] },
   { id: 'placar', name: 'Placar', kind: 'rss', urls: ['https://placar.com.br/rss.xml'], leagues: [] },
   { id: 'ge', name: 'ge', kind: 'rss', urls: ['https://ge.globo.com/rss/ge/futebol/'], leagues: [] },
-  { id: 'jumper', name: 'Jumper Brasil', kind: 'rss', urls: ['https://jumperbrasil.com.br/?feed=rss2'], leagues: ['NBA'] },
 ]
 
 export const SOURCE_NAMES: Record<SourceId, string> =

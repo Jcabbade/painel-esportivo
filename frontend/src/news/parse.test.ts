@@ -78,11 +78,6 @@ describe('parseSource', () => {
     expect(items.every(i => i.teams.length > 0 && i.teams.every(t => t.startsWith('soccer:')))).toBe(true)
   })
 
-  it('jumper rss', () => {
-    const items = parseSource('jumper', fixtureText('news/jumper.xml'), ctx)
-    expect(items).toHaveLength(10)
-  })
-
   it('brazilian homonyms do not tag european clubs in portuguese feeds', () => {
     const rss = (title: string) => `<?xml version="1.0"?><rss><channel><item><title>${title}</title>
       <link>https://ge.globo.com/ba/futebol/x.ghtml</link><pubDate>Thu, 19 Nov 2026 20:37:00 +0000</pubDate></item></channel></rss>`
@@ -112,12 +107,12 @@ describe('parseSource', () => {
   it('sanitizes html and rejects non-http links', () => {
     const rss = (link: string) => `<?xml version="1.0"?><rss><channel><item><title>T &amp; t</title><link>${link}</link>
       <description><![CDATA[<script>alert(1)</script><b>Oi</b>]]></description><pubDate>Thu, 19 Nov 2026 20:37:00 +0000</pubDate></item></channel></rss>`
-    const ok = parseSource('jumper', rss('https://x.com/a?utm_source=z&b=1'), ctx)
+    const ok = parseSource('hoops', rss('https://x.com/a?utm_source=z&b=1'), ctx)
     expect(ok).toHaveLength(1)
     expect(ok[0].summary).toBe('Oi')
     expect(ok[0].title).toBe('T & t')
     expect(ok[0].url).toBe('https://x.com/a?b=1')
-    expect(parseSource('jumper', rss('javascript:alert(1)'), ctx)).toEqual([])
+    expect(parseSource('hoops', rss('javascript:alert(1)'), ctx)).toEqual([])
   })
 })
 

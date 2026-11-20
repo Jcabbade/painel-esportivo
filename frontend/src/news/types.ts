@@ -1,6 +1,6 @@
 /* Notícias gravadas pelo robô (news.json no ramo `news`). */
 
-export type SourceId = 'espn' | 'fabrizio_tg' | 'fabrizio_yt' | 'hoops' | 'placar' | 'ge' | 'jumper'
+export type SourceId = 'espn' | 'fabrizio_tg' | 'fabrizio_yt' | 'hoops' | 'placar' | 'ge'
 
 export interface NewsItem {
   id: string            // url normalizada
