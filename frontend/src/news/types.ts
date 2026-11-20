@@ -25,6 +25,8 @@ export interface SourceStatus {
 
 export interface NewsFile {
   updated_at: string
+  /** Quando o navegador buscou a ESPN direto porque o arquivo do robô estava velho. */
+  live_at?: string
   sources: Record<SourceId, SourceStatus>
   items: NewsItem[]
 }

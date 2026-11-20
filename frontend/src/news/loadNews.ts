@@ -3,6 +3,8 @@ import type { Fetcher } from '../espn/client'
 import { fetchJson } from '../espn/client'
 import { addDays, localToday } from '../lib/dates'
 import type { Game } from '../types'
+import { buildNews } from './build'
+import { fetchLiveEspn } from './live'
 import type { NewsFile, NewsItem } from './types'
 
 export const NEWS_URL: string = import.meta.env.VITE_NEWS_URL
@@ -18,8 +20,17 @@ export function _resetNewsCache(): void { cache = null }
 export async function loadNews(opts: { fetch?: Fetcher; now?: Date } = {}): Promise<NewsFile> {
   const now = (opts.now ?? new Date()).getTime()
   if (cache && now - cache.at < TTL) return cache.file
-  const file = await (opts.fetch ?? fetchJson)(NEWS_URL) as NewsFile
+  const fetch = opts.fetch ?? fetchJson
+  let file = await fetch(NEWS_URL) as NewsFile
   if (!file || !Array.isArray(file.items)) throw new Error('arquivo de notícias inválido')
+  if (now - Date.parse(file.updated_at) > STALE_AFTER) {
+    // Robô parado: completa com a ESPN buscada agora; o horário do robô fica, para o aviso continuar certo.
+    try {
+      const items = await fetchLiveEspn(fetch)
+      const at = new Date(now)
+      file = { ...buildNews(file, [{ id: 'espn', items }], at), updated_at: file.updated_at, live_at: at.toISOString() }
+    } catch (e) { console.warn('[noticias] ESPN direto falhou:', e) }
+  }
   cache = { at: now, file }
   return file
 }
@@ -48,9 +59,9 @@ export function relativeTime(iso: string, now: Date): string {
   return dayMonth.format(t)
 }
 
-export function newsAge(file: NewsFile, now: Date): { label: string; stale: boolean } {
+export function newsAge(file: NewsFile, now: Date): { label: string; stale: boolean; live: boolean } {
   const rel = relativeTime(file.updated_at, now)
   const label = rel === 'agora' ? 'atualizado agora'
     : rel.startsWith('há') || rel === 'ontem' ? `atualizado ${rel}` : `atualizado em ${rel}`
-  return { label, stale: now.getTime() - Date.parse(file.updated_at) > STALE_AFTER }
+  return { label, stale: now.getTime() - Date.parse(file.updated_at) > STALE_AFTER, live: !!file.live_at }
 }

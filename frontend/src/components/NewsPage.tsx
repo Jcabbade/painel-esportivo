@@ -56,7 +56,8 @@ export function NewsPage({ file, error, favs, onlyFavs, onOnlyFavs, onRetry }: P
       </div>
       <div className="list">
         {age && <p className={`nage ${age.stale ? 'stale' : ''}`}>
-          {age.stale ? `Notícias ${age.label.replace('atualizado', 'atualizadas')} — o robô pode estar parado.` : `Notícias ${age.label.replace('atualizado', 'atualizadas')}`}
+          {age.stale && age.live ? `ESPN Brasil buscada agora; as outras fontes estão paradas (${age.label}).`
+            : age.stale ? `Notícias ${age.label.replace('atualizado', 'atualizadas')} — o robô pode estar parado.` : `Notícias ${age.label.replace('atualizado', 'atualizadas')}`}
         </p>}
         {!file && !error && <p className="empty">Carregando…</p>}
         {!file && error && (

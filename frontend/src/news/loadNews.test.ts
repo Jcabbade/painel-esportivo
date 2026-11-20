@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Game } from '../types'
-import { _resetNewsCache, loadNews, newsAge, newsForGame, newsForTeams, relativeTime } from './loadNews'
+import { fixture } from '../espn/testFixtures'
+import { _resetNewsCache, loadNews, NEWS_URL, newsAge, newsForGame, newsForTeams, relativeTime } from './loadNews'
 import type { NewsFile, NewsItem } from './types'
 
 const it_ = (url: string, published: string, teams: string[]): NewsItem => ({
@@ -48,7 +49,7 @@ describe('news selectors', () => {
 
   it('stale news after 3h', () => {
     const now = new Date('2026-11-19T21:00:00Z')
-    expect(newsAge(file([], '2026-11-19T20:30:00.000Z'), now)).toEqual({ label: 'atualizado há 30 min', stale: false })
+    expect(newsAge(file([], '2026-11-19T20:30:00.000Z'), now)).toEqual({ label: 'atualizado há 30 min', stale: false, live: false })
     expect(newsAge(file([], '2026-11-19T17:30:00.000Z'), now).stale).toBe(true)
   })
 })
@@ -64,5 +65,49 @@ describe('loadNews', () => {
     expect(calls).toBe(1)
     await loadNews({ fetch: f, now: new Date('2026-11-19T21:06:00Z') })
     expect(calls).toBe(2)
+  })
+})
+
+describe('loadNews: ESPN direto quando o robô está parado', () => {
+  beforeEach(() => _resetNewsCache())
+  const now = new Date('2026-11-20T12:00:00Z')
+  const old = '2026-11-19T21:41:00.000Z' // mais de 3 h antes
+
+  const fake = (robot: NewsFile, calls: string[] = []) => async (url: string) => {
+    calls.push(url)
+    if (url.includes('raw.githubusercontent') || url === NEWS_URL) return robot
+    if (url.includes('/soccer/eng.1/news')) return fixture('news/espn_PL_pt.json')
+    if (url.includes('/soccer/eng.1/standings')) return fixture('standings_PL.json')
+    throw new Error('respondeu 500')
+  }
+
+  it('robô velho: junta as notícias da ESPN buscadas agora e marca live_at', async () => {
+    const robotItem = it_('https://x.com/a', '2026-11-19T20:00:00.000Z', [])
+    const f = await loadNews({ fetch: fake(file([robotItem], old)), now })
+    expect(f.updated_at).toBe(old)                       // o horário do robô não muda
+    expect(f.live_at).toBe(now.toISOString())
+    expect(f.items.some(i => i.url === 'https://x.com/a')).toBe(true)
+    const espn = f.items.filter(i => i.source === 'espn' && i.url !== 'https://x.com/a')
+    expect(espn.length).toBeGreaterThan(0)
+    expect(espn.every(i => i.leagues.includes('PL'))).toBe(true)
+  })
+
+  it('robô em dia: não busca a ESPN', async () => {
+    const calls: string[] = []
+    const f = await loadNews({ fetch: fake(file([], '2026-11-20T11:00:00.000Z'), calls), now })
+    expect(calls).toHaveLength(1)
+    expect(f.live_at).toBeUndefined()
+  })
+
+  it('ESPN fora do ar: devolve o arquivo do robô sem erro', async () => {
+    const robot = file([], old)
+    const f = await loadNews({ fetch: async (u: string) => { if (u === NEWS_URL) return robot; throw new Error('500') }, now })
+    expect(f).toEqual(robot)
+  })
+
+  it('newsAge avisa quando a ESPN veio direto', () => {
+    const f = { ...file([], old), live_at: now.toISOString() }
+    expect(newsAge(f, now)).toMatchObject({ stale: true, live: true })
+    expect(newsAge(file([], old), now).live).toBe(false)
   })
 })
