@@ -12,11 +12,13 @@ const avg = (v: number[]) => (v.length ? r2(v.reduce((s, x) => s + x, 0) / v.len
 const other = (s: Side): Side => (s === 'h' ? 'a' : 'h')
 
 /** Jogos do time (mais recentes primeiro), em todas as ligas recebidas. */
-export function teamGames(files: LeagueFile[], teamId: string, opts: { venue: Venue; last: number }): TeamGame[] {
+/** `before` (ISO): só jogos que começaram antes (pré-jogo de um jogo passado não vê o futuro). */
+export function teamGames(files: LeagueFile[], teamId: string, opts: { venue: Venue; last: number; before?: string }): TeamGame[] {
   const out: TeamGame[] = []
   for (const f of files) {
     const sport = leagueOf(f.league).sport
     for (const g of f.games) {
+      if (opts.before && g.date >= opts.before) continue
       if (g.h === teamId && opts.venue !== 'away') out.push({ g, side: 'h', league: f.league, sport })
       else if (g.a === teamId && opts.venue !== 'home') out.push({ g, side: 'a', league: f.league, sport })
     }
@@ -34,9 +36,9 @@ export interface CompareRow {
 }
 
 export function compare(files: LeagueFile[], homeId: string, awayId: string, sport: Sport,
-  opts: { last: number; venueSplit: boolean }): CompareRow[] {
+  opts: { last: number; venueSplit: boolean; before?: string }): CompareRow[] {
   const side = (id: string, venue: Venue) => {
-    const games = teamGames(files, id, { venue: opts.venueSplit ? venue : 'all', last: opts.last })
+    const games = teamGames(files, id, { venue: opts.venueSplit ? venue : 'all', last: opts.last, before: opts.before })
     return (m: ReturnType<typeof countMetrics>[number]) => {
       const fr: number[] = [], ag: number[] = []
       for (const e of games) {
@@ -54,8 +56,8 @@ export interface Opportunity { metric: string; label: string; kind: 'over' | 'un
 
 /** Estatísticas (feitos) em que o time mais bateu a linha nos últimos jogos: ≥ 70% e ≥ 5 jogos. */
 export function opportunities(files: LeagueFile[], teamId: string, sport: Sport,
-  opts: { last: number; venue: Venue }): Opportunity[] {
-  const games = teamGames(files, teamId, { venue: opts.venue, last: opts.last })
+  opts: { last: number; venue: Venue; before?: string }): Opportunity[] {
+  const games = teamGames(files, teamId, { venue: opts.venue, last: opts.last, before: opts.before })
   const out: Opportunity[] = []
   for (const m of countMetrics(sport)) {
     const vals = games.map(e => sideValue(e.g, e.side, m, 'full', e.sport)).filter((v): v is number => v !== null)

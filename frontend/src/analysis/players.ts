@@ -16,12 +16,15 @@ export const PLAYER_STATS: Record<string, { key: string; label: string }[]> = {
 
 /** Jogadores cuja aparição mais recente foi por um dos times pedidos. */
 export function playerRanking(pf: PlayersFile, teamIds: string[], stat: string,
-  opts: { last: number; onlyIds?: Set<string> }): PlayerRow[] {
+  opts: { last: number; onlyIds?: Set<string>; before?: string }): PlayerRow[] {
   const teams = new Set(teamIds)
   const apps = new Map<string, { date: string; t: string; n: string; v: number | undefined }[]>()
-  for (const g of pf.games) for (const p of g.p) {
+  for (const g of pf.games) {
+    if (opts.before && g.date >= opts.before) continue
+    for (const p of g.p) {
     if (!apps.has(p.id)) apps.set(p.id, [])
     apps.get(p.id)!.push({ date: g.date, t: p.t, n: p.n, v: p.st[stat] })
+    }
   }
   const rows: PlayerRow[] = []
   for (const [id, list] of apps) {

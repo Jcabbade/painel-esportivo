@@ -26,7 +26,7 @@ export function PlayersTab({ game, detail }: { game: Game; detail: GameDetail | 
   const starters = detail?.lineups
     ? new Set([...detail.lineups.home.starters, ...detail.lineups.away.starters].map(x => x.id).filter((x): x is string => !!x)) : null
   const teams = p.team === 'home' ? [game.home.team_id] : p.team === 'away' ? [game.away.team_id] : [game.home.team_id, game.away.team_id]
-  const rows = pf ? playerRanking(pf, teams, stat, { last: 10, onlyIds: p.onlyLineup && starters?.size ? starters : undefined }) : []
+  const rows = pf ? playerRanking(pf, teams, stat, { last: 10, onlyIds: p.onlyLineup && starters?.size ? starters : undefined, before: game.start_utc }) : []
   const teamLabel = (id: string) => (id === game.home.team_id ? game.home.abbrev : id === game.away.team_id ? game.away.abbrev : id)
 
   if (err === 'missing') return <p className="soon">O histórico de jogadores ainda está sendo montado. Volte mais tarde.</p>

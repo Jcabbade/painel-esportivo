@@ -9,8 +9,8 @@ import { dec, HistoryGate, teamName, useSportHistory } from './common'
 
 type View = 'for' | 'against' | 'total'
 
-function Profile({ files, id, title, venue, view }: { files: LeagueFile[]; id: string; title: string; venue: 'all' | 'home' | 'away'; view: View }) {
-  const p = cornerProfile(files, id, { last: 10, venue, view })
+function Profile({ files, id, title, venue, view, before }: { files: LeagueFile[]; id: string; title: string; venue: 'all' | 'home' | 'away'; view: View; before: string }) {
+  const p = cornerProfile(files, id, { last: 10, venue, view, before })
   return (
     <div className="cprof">
       <div className="lhead"><b>{title}</b><span>{p.n} jogos</span></div>
@@ -56,8 +56,8 @@ export function CornersTab({ game, detail }: { game: Game; detail: GameDetail | 
       )}
       <Section title="Escanteios por faixa de 10 minutos (últimos 10 jogos)">
         <div className="oppgrid">
-          <Profile files={h.files} id={game.home.team_id} title={teamName(game, 'home')} venue={p.split ? 'home' : 'all'} view={p.view} />
-          <Profile files={h.files} id={game.away.team_id} title={teamName(game, 'away')} venue={p.split ? 'away' : 'all'} view={p.view} />
+          <Profile files={h.files} id={game.home.team_id} title={teamName(game, 'home')} venue={p.split ? 'home' : 'all'} view={p.view} before={game.start_utc} />
+          <Profile files={h.files} id={game.away.team_id} title={teamName(game, 'away')} venue={p.split ? 'away' : 'all'} view={p.view} before={game.start_utc} />
         </div>
       </Section>
     </HistoryGate>

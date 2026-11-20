@@ -6,8 +6,8 @@ import { teamGames, type Venue } from './pregame'
 const r2 = (n: number) => Math.round(n * 100) / 100
 
 export function cornerProfile(files: LeagueFile[], teamId: string,
-  opts: { last: number; venue: Venue; view: 'for' | 'against' | 'total' }) {
-  const games = teamGames(files, teamId, { venue: opts.venue, last: Number.MAX_SAFE_INTEGER })
+  opts: { last: number; venue: Venue; view: 'for' | 'against' | 'total'; before?: string }) {
+  const games = teamGames(files, teamId, { venue: opts.venue, last: Number.MAX_SAFE_INTEGER, before: opts.before })
     .filter(e => e.g.cb).slice(0, opts.last)
   const totals = Array(CORNER_BUCKETS.length).fill(0) as number[]
   for (const { g, side } of games) {

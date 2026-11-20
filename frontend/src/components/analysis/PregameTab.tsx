@@ -23,10 +23,10 @@ function OppCard({ title, items }: { title: string; items: Opportunity[] }) {
 export function PregameTab({ game }: { game: Game }) {
   const h = useSportHistory(game.sport)
   const [p, set] = usePref('painel.prejogo', { last: 10 as 5 | 10, split: false })
-  const rows = compare(h.files, game.home.team_id, game.away.team_id, game.sport, { last: p.last, venueSplit: p.split })
+  const rows = compare(h.files, game.home.team_id, game.away.team_id, game.sport, { last: p.last, venueSplit: p.split, before: game.start_utc })
   const nH = Math.max(0, ...rows.map(r => r.home.n)), nA = Math.max(0, ...rows.map(r => r.away.n))
   const opp = (id: string, venue: 'home' | 'away') =>
-    opportunities(h.files, id, game.sport, { last: 10, venue: p.split ? venue : 'all' })
+    opportunities(h.files, id, game.sport, { last: 10, venue: p.split ? venue : 'all', before: game.start_utc })
   const hi = (a: number | null, b: number | null) => (a !== null && b !== null && a > b ? 'hi' : '')
   return (
     <HistoryGate h={h}>

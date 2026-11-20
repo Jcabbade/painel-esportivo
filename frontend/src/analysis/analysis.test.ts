@@ -49,6 +49,19 @@ describe('pregame', () => {
     expect(ops.length).toBeLessThanOrEqual(5)
   })
 
+  it('only games before kickoff count', () => {
+    const f = file('PL', [
+      g({ h: '1', a: '2', ...corners(8, 2), date: '2026-10-01T20:00:00Z' }),
+      g({ h: '1', a: '2', ...corners(0, 9), date: '2026-10-20T20:00:00Z' }),   // o próprio jogo / depois dele
+    ])
+    expect(teamGames([f], '1', { venue: 'all', last: 10, before: '2026-10-20T20:00:00Z' })).toHaveLength(1)
+    const row = compare([f], '1', '2', 'soccer', { last: 10, venueSplit: false, before: '2026-10-20T20:00:00Z' }).find(r => r.metric === 'corners')!
+    expect(row.home).toEqual({ for: 8, against: 2, n: 1 })
+    expect(headToHead([f], '1', '2', 'total', '2026-10-20T20:00:00Z').games).toHaveLength(1)
+    expect(form([f], '1', 10, 'all', '2026-10-20T20:00:00Z')).toHaveLength(1)
+    expect(cornerProfile([f], '1', { last: 10, venue: 'all', view: 'for', before: '2026-10-20T20:00:00Z' }).n).toBe(0)
+  })
+
   it('analysis handles team without history', () => {
     const f = file('PL', [g({ h: '1', a: '2' })])
     expect(teamGames([f], '77', { venue: 'all', last: 10 })).toEqual([])

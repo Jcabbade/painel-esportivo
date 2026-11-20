@@ -7,8 +7,8 @@ import { FormDots, HistoryGate, teamName, useSportHistory } from './common'
 
 const fmt = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: '2-digit' })
 
-function Recent({ files, id, title, venue }: { files: LeagueFile[]; id: string; title: string; venue: 'all' | 'home' | 'away' }) {
-  const rows = form(files, id, 10, venue)
+function Recent({ files, id, title, venue, before }: { files: LeagueFile[]; id: string; title: string; venue: 'all' | 'home' | 'away'; before: string }) {
+  const rows = form(files, id, 10, venue, before)
   return (
     <div className="recent">
       <div className="lhead"><b>{title}</b><FormDots res={rows.slice(0, 5).map(r => r.res)} /></div>
@@ -32,7 +32,7 @@ export function H2HTab({ game }: { game: Game }) {
   const h = useSportHistory(game.sport)
   const [p, set] = usePref('painel.h2h', { filter: 'total' as 'total' | 'aHome' | 'bHome' })
   const a = game.home.team_id, b = game.away.team_id
-  const r = headToHead(h.files, a, b, p.filter)
+  const r = headToHead(h.files, a, b, p.filter, game.start_utc)
   const names = new Map(h.files.flatMap(f => Object.entries(f.teams).map(([id, t]) => [id, t.name] as const)))
   const total = r.aWins + r.draws + r.bWins
   return (
@@ -68,8 +68,8 @@ export function H2HTab({ game }: { game: Game }) {
       </Section>
       <Section title="Últimos jogos">
         <div className="oppgrid">
-          <Recent files={h.files} id={a} title={teamName(game, 'home')} venue={p.filter === 'aHome' ? 'home' : 'all'} />
-          <Recent files={h.files} id={b} title={teamName(game, 'away')} venue={p.filter === 'aHome' ? 'away' : 'all'} />
+          <Recent files={h.files} id={a} title={teamName(game, 'home')} venue={p.filter === 'aHome' ? 'home' : 'all'} before={game.start_utc} />
+          <Recent files={h.files} id={b} title={teamName(game, 'away')} venue={p.filter === 'aHome' ? 'away' : 'all'} before={game.start_utc} />
         </div>
       </Section>
     </HistoryGate>
