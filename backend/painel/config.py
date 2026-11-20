@@ -17,6 +17,10 @@ class League:
 LEAGUES: list[League] = [
     League("NFL", "football/nfl", "NFL", "football"),
     League("NBA", "basketball/nba", "NBA", "basketball"),
+    League("BRA", "soccer/bra.1", "Brasileirão", "soccer"),
+    League("CDB", "soccer/bra.copa_do_brazil", "Copa do Brasil", "soccer"),
+    League("LIB", "soccer/conmebol.libertadores", "Libertadores", "soccer"),
+    League("SUL", "soccer/conmebol.sudamericana", "Sul-Americana", "soccer"),
     League("PL", "soccer/eng.1", "Premier League", "soccer"),
     League("UCL", "soccer/uefa.champions", "Champions League", "soccer"),
     League("ESP", "soccer/esp.1", "La Liga", "soccer"),

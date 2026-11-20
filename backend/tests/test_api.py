@@ -28,7 +28,7 @@ def setup(tmp_path):
 def test_leagues(setup):
     client, *_ = setup
     r = client.get("/api/leagues")
-    assert [x["key"] for x in r.json()] == ["NFL", "NBA", "PL", "UCL", "ESP", "ITA", "ALE"]
+    assert [x["key"] for x in r.json()] == ["NFL", "NBA", "BRA", "CDB", "LIB", "SUL", "PL", "UCL", "ESP", "ITA", "ALE"]
 
 
 def test_games_endpoint_shape(setup):
@@ -84,4 +84,4 @@ def test_invalid_date_422(setup):
 
 def test_status(setup):
     client, *_ = setup
-    assert len(client.get("/api/status").json()) == 7
+    assert len(client.get("/api/status").json()) == 11

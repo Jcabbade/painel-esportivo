@@ -85,7 +85,7 @@ def test_sync_health_failing(conn):
 
 def test_sync_health_lists_all_leagues(conn):
     keys = [h["league"] for h in repo.sync_health(conn)]
-    assert keys == ["NFL", "NBA", "PL", "UCL", "ESP", "ITA", "ALE"]
+    assert keys == ["NFL", "NBA", "BRA", "CDB", "LIB", "SUL", "PL", "UCL", "ESP", "ITA", "ALE"]
 
 
 def test_has_live_games(conn):

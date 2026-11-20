@@ -12,4 +12,4 @@ def test_init_schema_creates_tables(tmp_path):
 def test_league_lookup():
     assert config.league("UCL").path == "soccer/uefa.champions"
     assert config.league("NBA").sport == "basketball"
-    assert len(config.LEAGUES) == 7
+    assert len(config.LEAGUES) == 11
