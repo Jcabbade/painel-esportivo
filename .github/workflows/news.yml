@@ -1,14 +1,19 @@
 name: Notícias
 
-# Robô de notícias: a cada 30 min lê as fontes e grava news.json no ramo `news`.
-# O ramo guarda só a versão mais recente (commit único, sobrescrito), para não crescer.
+# Robô de notícias: lê as fontes e grava news.json no ramo `news` (commit único, sobrescrito, para não crescer).
+#
+# O agendamento do GitHub atrasa ou pula execuções frequentes, então cada execução fica rodando ~5h30,
+# atualiza a cada 30 min e, ao terminar, dispara a próxima (workflow_dispatch é o único evento que o
+# GITHUB_TOKEN pode disparar). O agendamento a cada 2 h é só reserva, para religar a corrente se ela quebrar;
+# o grupo de concorrência garante uma execução por vez (no máximo uma na fila).
 on:
   schedule:
-    - cron: '7,37 * * * *'   # fora dos minutos redondos, mais disputados no GitHub
+    - cron: '7 */2 * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
+  actions: write   # para disparar a próxima execução
 
 concurrency:
   group: news
@@ -17,7 +22,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,37 +34,62 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
         working-directory: frontend
-      - name: Arquivo anterior
-        # Lido pelo git (sem cache de CDN). Ramo inexistente = começa vazio; qualquer outra falha interrompe,
-        # para nunca sobrescrever o arquivo bom com um vazio.
+      - name: Atualizar a cada 30 min
         env:
           TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DURACAO_MIN: 330
+          INTERVALO_S: 1800
         run: |
+          REMOTE="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
           mkdir -p news-store
-          REMOTE="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
-          set +e
-          git ls-remote --exit-code --heads "$REMOTE" news > /dev/null
-          code=$?
-          set -e
-          if [ "$code" = "2" ]; then
-            echo "ramo news ainda não existe: começando vazio"
-          elif [ "$code" = "0" ]; then
-            git fetch -q --depth=1 "$REMOTE" news
-            git show FETCH_HEAD:news.json > news-store/news.json
-          else
-            echo "não foi possível consultar o ramo news (código $code)"; exit 1
-          fi
-      - name: Buscar notícias
-        run: npm run update-news -- ../news-store/news.json
-        working-directory: frontend
-      - name: Publicar no ramo news
-        working-directory: news-store
+
+          # Arquivo anterior, lido pelo git (sem cache de CDN). Ramo inexistente = começa vazio;
+          # qualquer outra falha pula a rodada, para nunca sobrescrever o arquivo bom com um vazio.
+          anterior() {
+            rm -f news-store/news.json
+            set +e
+            git ls-remote --exit-code --heads "$REMOTE" news > /dev/null
+            local code=$?
+            set -e
+            if [ "$code" = "2" ]; then
+              echo "ramo news ainda não existe: começando vazio"
+            elif [ "$code" = "0" ]; then
+              git fetch -q --depth=1 "$REMOTE" news && git show FETCH_HEAD:news.json > news-store/news.json
+            else
+              echo "não foi possível consultar o ramo news (código $code)"; return 1
+            fi
+          }
+
+          publicar() {
+            ( cd news-store
+              rm -rf .git
+              git init -q -b news
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add news.json
+              git commit -q -m "notícias: $(date -u +%Y-%m-%dT%H:%MZ)"
+              git push -q --force "$REMOTE" HEAD:news )
+          }
+
+          rodada() {
+            anterior || return 1
+            ( cd frontend && npm run update-news -- ../news-store/news.json ) || return 1
+            publicar
+          }
+
+          fim=$(( $(date +%s) + DURACAO_MIN * 60 ))
+          while :; do
+            inicio=$(date +%s)
+            echo "::group::rodada $(date -u +%H:%MZ)"
+            rodada || echo "::warning::rodada das $(date -u +%H:%MZ) falhou; tento de novo na próxima"
+            echo "::endgroup::"
+            proxima=$(( inicio + INTERVALO_S ))
+            [ "$proxima" -ge "$fim" ] && break
+            sleep $(( proxima - $(date +%s) > 0 ? proxima - $(date +%s) : 0 ))
+          done
+      - name: Disparar a próxima execução
+        if: ${{ !cancelled() }}
         env:
-          TOKEN: ${{ github.token }}
-        run: |
-          git init -q -b news
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add news.json
-          git commit -q -m "notícias: $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push -q --force "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" HEAD:news
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run news.yml --repo "${{ github.repository }}" --ref "${{ github.ref_name }}"
